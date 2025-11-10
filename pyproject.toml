@@ -1,0 +1,57 @@
+
+[project]
+name = "pysworn"
+version = "0.1.0"
+description = "Python interfaces for Ironsworn: Starforged"
+readme = "README.md"
+keywords = ["ironsworn", "starforged", "ttrpg"]
+authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
+requires-python = ">=3.12"
+dependencies = [
+    "pysworn-datasworn",
+]
+
+[project.scripts]
+pysworn = "pysworn.reference.app:run"
+datasworn = "pysworn.datasworn.main:app"
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+managed = true
+package = false # the project itself is not a package
+
+[tool.uv.sources]
+pysworn-reference = { workspace = true }
+pysworn-datasworn = { workspace = true }
+
+[tool.uv.workspace]
+members = ["datasworn", "reference"]
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.34.0",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.11.8",
+    "textual-dev>=1.7.0",
+    "pyinstrument>=5.0.1",
+]
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = ["_attic/"]
+
+
+[tool.poe.tasks]
+fix = "uv run --active ruff check --fix"
+dev = "uv run --active textual run --dev -c pysworn"
+console = "uv run --active textual console"
