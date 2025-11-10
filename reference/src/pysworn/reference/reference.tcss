@@ -1,0 +1,268 @@
+/*
+ * Reference CSS
+ */
+$move: #518c5e;
+$gameplay: #3976b2;
+$oracle: #805ebf;
+* {
+  scrollbar-size: 1 1;
+}
+ReferenceTabs {
+    display: block;
+    dock: left;
+    border: round $secondary;
+    width: auto;
+}
+#current-link {
+  dock: bottom;
+  height: 2;
+  width: 1fr;  
+  background: $panel;
+  # border: round $secondary;
+}
+Switch {
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+}
+.reference-tabpane {
+  width: auto;
+}
+.rules-tabs {
+  # width: auto;
+  # height: auto;
+  padding: 0 2;
+  # border: round $primary;
+}
+.rule-viewer-container {
+  width: 1fr;
+  height: auto;
+  # border: round $primary;
+}
+ReferenceTree {
+  # padding: 1;
+  width: auto;
+  # background: $background;
+  # border: round $primary;
+}
+History {
+  dock: right;
+  width: auto;
+  max-width: 40%;
+  height: auto;
+  border: round $primary;
+  overflow: auto auto;
+}
+#category-collapsible.hidden {
+    display: none;
+}
+#rule-image {
+  align: center middle;
+  width: auto;
+  height: auto;
+}
+RuleViewer {
+  # max-width: 1fr;
+  height: auto;
+  width: 1fr;
+  border: round $primary;
+  # border-title-color: auto;
+  # padding: 1 0 0 0;
+  &:focus {
+    background: $surface;
+  }
+}
+RulesetViewer {
+  padding: 1;
+}
+Pretty {
+  padding: 2;
+  background: black;
+}
+.viewer-container {
+  # width: 1fr;
+  # height: auto;
+  # border: round $primary;
+  overflow: auto auto;
+
+}
+/**********************************************
+ Assets 
+***********************************************/
+.asset-abilities {
+  height: auto;
+  keyline: thin $secondary;
+}
+.asset-ability {
+  height: auto;
+  margin: 1;
+  # keyline: thin  $secondary;
+}
+AssetViewer{
+  height: auto;
+  border: round $primary;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}
+AssetAbilityViewer {
+  border: none;
+}
+/**********************************************
+ Oracles
+***********************************************/
+.embedded-oracle {
+  # margin: 1;
+  # width: auto;
+  # border: round $secondary;
+  border: none;
+  padding: 1;
+  # height: auto;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}
+# .embedded-oracle-table {
+  # width: auto;
+# }
+# .oracle-collection{
+#   height: auto;
+#   width: auto;
+#   grid-size: 2;
+#   grid-columns: auto auto auto auto;
+# }
+OracleCollectionViewer {
+  # height: auto;   
+  ItemGrid {
+    # width: 1fr;
+    height: auto;
+    grid-rows: auto;
+  }
+}
+OracleViewer {
+  # margin: 1;  
+  # height: 1fr;
+  # width: auto;
+}
+OracleTable {
+  height: 1fr;
+  # width: auto;
+  # padding: 1;
+  # text-wrap: wrap;
+  # text-overflow: fold;
+  # max-width: 40;
+  # overflow: hidden;
+}
+/**********************************************
+ Moves 
+***********************************************/
+MoveCategoryViewer {
+  border: none;
+  padding: 1;
+}
+.embedded-move {
+  # margin: 1;
+  height: auto;
+  border: round $secondary;
+  border-title-color: $primary;
+}
+# .move-text {
+  # border: round $secondary;
+# }
+.move-roll-option {
+  height: auto;
+  # border: round $secondary;
+}
+.move-trigger {
+  # width: 60;
+  height: auto;
+  # padding: 1;
+}
+.move-outcomes {
+  height: auto;
+  # keyline: thin $secondary;
+}
+MoveOutcome {
+  # height: auto;
+  padding: 1;
+    # border: round $secondary;
+  &:focus {
+    # border: round $primary;
+    background: $panel;
+  }
+}
+.move-burn-momentum-container {
+    width: 1fr;
+    height: 1;
+    align: right middle;
+    padding: 0 1;
+}
+.burn-momentum-switch {
+  border: none;
+  padding: 0;
+  # align: center middle;
+}
+/**********************************************
+Atlas 
+***********************************************/
+.atlas-entry-summary {
+  height: auto;
+  # border: round $secondary;
+  padding: 0;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }  
+}
+/********************************************** 
+Delve: Site Themes 
+***********************************************/
+.site-table {
+  border: round $secondary;
+}
+SiteThemeViewer {
+  MarkdownH1 {
+    text-style: bold reverse;
+  }  
+}
+/**********************************************
+ NPC
+***********************************************/
+NpcVariantViewer {
+  height: auto;
+  border: round $secondary;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}
+/**********************************************
+ Truths 
+***********************************************/
+.truth-options {
+  height: auto;
+  keyline: thin $secondary;
+}
+.truth-option {
+  margin: 1;
+  height: auto;
+}
+TruthViewer {
+  height: auto;
+  border: round $primary;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}
+TruthOptionViewer {
+  height: auto;
+  border: round $secondary;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}

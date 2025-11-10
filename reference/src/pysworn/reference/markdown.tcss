@@ -1,0 +1,45 @@
+Markdown {
+    # width: 50%;
+    margin: 0 1;
+    padding: 0 0;
+}
+# Markdown:focus {
+#     background: $panel;
+# }
+
+MarkdownBlockQuote:focus {
+    background: $panel;
+}
+
+MarkdownH1{
+    
+    &:focus {
+        text-style: bold reverse;
+        # text-align: left;
+        # background: $panel;
+    }
+}
+$markdown-h2-text-style: not underline;
+MarkdownH2{
+    # text-style: bold;
+    &:focus {
+        background: $panel;
+        padding: 0;
+        margin: 0;
+    }
+}
+MarkdownParagraph:focus {
+    background: $panel;
+}
+
+
+MarkdownBulletList:focus {
+    background: $panel;
+}
+
+MarkdownTable:focus {
+    background: $panel;
+}       
+MarkdownCodeBlock:focus {
+    background: $panel;
+}

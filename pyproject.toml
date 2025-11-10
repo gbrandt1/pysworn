@@ -9,6 +9,7 @@ authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
 dependencies = [
     "pysworn-datasworn",
+    "pysworn-reference",
 ]
 
 [project.scripts]
@@ -24,8 +25,8 @@ managed = true
 package = false # the project itself is not a package
 
 [tool.uv.sources]
-pysworn-reference = { workspace = true }
 pysworn-datasworn = { workspace = true }
+pysworn-reference = { workspace = true }
 
 [tool.uv.workspace]
 members = ["datasworn", "reference"]

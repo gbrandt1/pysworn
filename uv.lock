@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "pysworn",
     "pysworn-datasworn",
+    "pysworn-reference",
 ]
 
 [[package]]
@@ -1033,6 +1034,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "pysworn-datasworn" },
+    { name = "pysworn-reference" },
 ]
 
 [package.dev-dependencies]
@@ -1047,7 +1049,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pysworn-datasworn", editable = "datasworn" }]
+requires-dist = [
+    { name = "pysworn-datasworn", editable = "datasworn" },
+    { name = "pysworn-reference", editable = "reference" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1091,6 +1096,29 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "pytest-coverage", specifier = ">=0.0" },
 ]
+
+[[package]]
+name = "pysworn-reference"
+version = "0.1.0"
+source = { editable = "reference" }
+dependencies = [
+    { name = "pysworn-datasworn" },
+    { name = "textual" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "textual-dev" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pysworn-datasworn", editable = "datasworn" },
+    { name = "textual", specifier = ">=6.3.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "textual-dev", specifier = ">=1.8.0" }]
 
 [[package]]
 name = "pytest"
