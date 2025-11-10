@@ -8,8 +8,24 @@ PySworn is a terminal application written in Python based on [datasworn](https:/
 
 `uv` is recommended for installation.
 
+## Usage
+
+### PySworn Ironsworn:Starforged Reference Application
+
+`uv run pysworn`
+
+This tool opens a [Textual](https://textual.textualize.io/) application to quickly navigate oracles and other content for Ironsworn: Starforged.
+
+### Datasworn Tool
+
+`uv run datasworn`
+
+This tool can be used to inspect the [datasworn](https://github.com/rsek/datasworn) JSON files used by PySworn.
+
 ## Attribution
 
 This work is based on "Ironsworn: Starforged", created by Shawn Tomkin, and licensed for our use under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license (<https://creativecommons.org/licenses/by-nc-sa/4.0/).​>
 
 Datasworn JSON packaging by rsek and Textual by Will McGugan et al. are based on a MIT License.
+
+The package itself is licensed under the MIT License.

@@ -61,9 +61,13 @@ starforged_theme = Theme(
 
 deepspace_theme = Theme(
     name="deepspace",
-    primary="#ffff80",
+    primary="#fffff0",
+    secondary="#808070",
+    accent="#ffff00",
     foreground="#ffffff",
+    success="#36a9e1",
+    warning="#8d1d82",
+    error="#ca181a",
     background="#000000",
-    secondary="#D08000",
-    panel="#404000",
+    panel="#303020",
 )

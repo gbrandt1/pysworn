@@ -114,47 +114,29 @@ AssetAbilityViewer {
  Oracles
 ***********************************************/
 .embedded-oracle {
-  # margin: 1;
-  # width: auto;
-  # border: round $secondary;
-  border: none;
-  padding: 1;
-  # height: auto;
+  border: blank $primary;
+  margin: 1;
   &:focus {
     border: round $primary;
     background: $panel;
   }
 }
-# .embedded-oracle-table {
-  # width: auto;
-# }
-# .oracle-collection{
-#   height: auto;
-#   width: auto;
-#   grid-size: 2;
-#   grid-columns: auto auto auto auto;
-# }
+.move-oracle {
+  border: none;
+  padding: 1;
+  &:focus {
+    border: round $primary;
+    background: $panel;
+  }
+}
 OracleCollectionViewer {
-  # height: auto;   
   ItemGrid {
-    # width: 1fr;
     height: auto;
     grid-rows: auto;
   }
 }
-OracleViewer {
-  # margin: 1;  
-  # height: 1fr;
-  # width: auto;
-}
 OracleTable {
   height: 1fr;
-  # width: auto;
-  # padding: 1;
-  # text-wrap: wrap;
-  # text-overflow: fold;
-  # max-width: 40;
-  # overflow: hidden;
 }
 /**********************************************
  Moves 

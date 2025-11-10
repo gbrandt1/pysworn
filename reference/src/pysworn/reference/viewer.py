@@ -368,7 +368,7 @@ class MoveViewer(RuleViewer):
         if hasattr(move, "oracles"):
             for oracle in move.oracles.values():
                 self.log(f"Embedded oracle: {oracle.id.value}")
-                yield EmbeddedOracleViewer(oracle.id.value, classes="embedded-oracle")
+                yield EmbeddedOracleViewer(oracle.id.value, classes="move-oracle")
 
     def on_markdown_link_clicked(self, event):
         event.stop()

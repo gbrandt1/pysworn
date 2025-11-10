@@ -34,16 +34,16 @@ from .viewer import RulesetViewer
 
 # RULE_TYPES = get_rule_types()
 RULE_COLLECTIONS = [
-    "oracles",
-    "moves",
-    "assets",
-    "rarities",
-    "npcs",
-    "atlas",
-    "delve_sites",
-    "site_domains",
-    "site_themes",
-    "truths",
+    ("oracles", "[u]O[/u]racles"),
+    ("moves", "[u]M[/u]oves"),
+    ("assets", "[u]A[/u]ssets"),
+    ("rarities", "[u]R[/u]arities"),
+    ("npcs", "[u]N[/u]pcs"),
+    ("atlas", "At[u]L[/u]as"),
+    ("delve_sites", "Delve [u]S[/u]ites"),
+    ("site_domains", "Site [u]D[/u]omains"),
+    ("site_themes", "Site T[u]h[/u]emes"),
+    ("truths", "[u]T[/u]ruths"),
 ]
 
 
@@ -84,14 +84,14 @@ def compose_rule_viewer_tabs(category, collection) -> ComposeResult:
 
 def compose_ruleset_tabs(ruleset: str) -> ComposeResult:
     with RulesTabbedContent(id=f"{ruleset}-rules-tabs", classes="rules-tabs"):
-        for category in RULE_COLLECTIONS:
+        for category, title in RULE_COLLECTIONS:
             if (
                 hasattr(rules[ruleset], category)
                 and isinstance(collection := getattr(rules[ruleset], category), dict)
                 and len(collection) > 0
             ):
                 with TabPane(
-                    category.title().replace("_", " "),
+                    title,
                     id=category,
                     classes="reference-tabpane",
                 ):
@@ -113,7 +113,69 @@ class ReferenceScreen(ModalScreen[str]):
         Binding("ctrl+right", "forward", "-->", show=True),
         Binding("h", "history", "Toggle History", show=True),
         Binding("t", "tree", "Toggle ToC", show=True),
+        Binding("l", "link", "Toggle link bar", show=True),
+        #
+        Binding("O", "oracles", "Jump to Oracles", show=False),
+        Binding("M", "moves", "Jump to Moves", show=False),
+        Binding("A", "assets", "Jump to Assets", show=False),
+        Binding("R", "rarities", "Jump to Rarities", show=False),
+        Binding("N", "npcs", "Jump to NPCs", show=False),
+        Binding("S", "delve_sites", "Jump to Delve Sites", show=False),
+        Binding("D", "site_domains", "Jump to Site Domains", show=False),
+        Binding("H", "site_themes", "Jump to Site Themes", show=False),
+        Binding("L", "atlas", "Jump to Atlas", show=False),
+        Binding("T", "truths", "Jump to Truths", show=False),
     ]
+
+    def get_category_tabs(self) -> TabbedContent:
+        ruleset_tabs = self.query_one("#ruleset-tabs", TabbedContent)
+        if not ruleset_tabs.active_pane:
+            return
+        category_tabs = ruleset_tabs.active_pane.query_one(TabbedContent)
+        if not category_tabs:
+            return
+        return category_tabs
+
+    def action_oracles(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "oracles"
+        tabs.focus()
+
+    def action_moves(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "moves"
+
+    def action_assets(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "assets"
+
+    def action_rarities(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "rarities"
+
+    def action_npcs(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "npcs"
+
+    def action_delve_sites(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "delve_sites"
+
+    def action_site_domains(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "site_domains"
+
+    def action_site_themes(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "site_themes"
+
+    def action_atlas(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "atlas"
+
+    def action_truths(self):
+        tabs = self.get_category_tabs()
+        tabs.active = "truths"
 
     debug = reactive(False)
 
@@ -144,6 +206,7 @@ class ReferenceScreen(ModalScreen[str]):
 
     def on_mount(self) -> None:
         self.query_one(History).display = False
+        self.query_one("#current-link", Static).display = False
         self.post_message(self.Visit())
 
     @on(Visit)
@@ -336,6 +399,10 @@ class ReferenceScreen(ModalScreen[str]):
         tree = category_pane.query_one(ReferenceTree)
         tree.display = not tree.display
 
+    def action_link(self) -> None:
+        link = self.query_one("#current-link", Static)
+        link.display = not link.display
+
     # History Commands
 
     def action_history(self) -> None:
@@ -353,27 +420,6 @@ class ReferenceScreen(ModalScreen[str]):
         if history.forward() and history.link:
             self.log(f"Forward {history.link}")
             self.post_message(self.Visit(history.link, remember=False))
-
-    # def action_navigation(self) -> None:
-    #     pass
-
-    # def on_navigation_hidden(self) -> None:
-    #     self.query_one("#journal-tabs").focus()
-
-    # def on_history_goto(self, event: History.Goto) -> None:
-    #     self.visit(event.link, remember=event.link != history.link)
-
-    # def on_history_delete(self, event: History.Delete) -> None:
-    #     try:
-    #         del history._history[event.history_id]
-    #     except IndexError:
-    #         pass
-    #     else:
-    #         self.post_message(self.HistoryUpdated())
-
-    # def on_history_clear(self) -> None:
-    #     history._history.clear()
-    #     self.post_message(self.HistoryUpdated())
 
     def on_reference_screen_history_updated(self, event: HistoryUpdated) -> None:
         # self.log("History Updated")
