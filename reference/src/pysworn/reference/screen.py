@@ -307,7 +307,7 @@ class ReferenceScreen(ModalScreen[str]):
         if self.debug:
             obj = index[link]
             await viewer_container.mount(
-                Static(Inspect(obj, max_depth=1), id="rule-pretty")
+                Static(Inspect(obj, max_depth=2), id="rule-pretty")
             )
 
         # Update reference tree

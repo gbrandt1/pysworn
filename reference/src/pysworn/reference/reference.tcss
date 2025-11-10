@@ -151,9 +151,10 @@ MoveCategoryViewer {
   border: round $secondary;
   border-title-color: $primary;
 }
-# .move-text {
-  # border: round $secondary;
-# }
+.move-replaces {
+  height: auto;
+  text-opacity: 50%;
+}
 .move-roll-option {
   height: auto;
   # border: round $secondary;

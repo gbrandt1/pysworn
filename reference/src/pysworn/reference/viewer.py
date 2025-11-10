@@ -1,10 +1,6 @@
 import random
-import re
-from calendar import c
-from tkinter import E, Y
-from turtle import st
 
-from pysworn.datasworn import index
+from pysworn.datasworn import index, rules
 from pysworn.datasworn._datasworn import (
     Asset,
     AssetAbility,
@@ -16,27 +12,47 @@ from pysworn.datasworn._datasworn import (
     Ruleset,
     SpecialTrackType,
 )
-from pysworn.reference.oracle import get_max_row_widths, get_rows
+from pysworn.reference.oracle import get_max_row_widths
 from rich.rule import Rule
-from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Grid, Horizontal, ItemGrid, Vertical, VerticalScroll
+from textual.containers import Horizontal, ItemGrid, Vertical, VerticalScroll
 from textual.message import Message
-from textual.widgets import DataTable, Label, Markdown, Pretty, Static, Switch
+from textual.widgets import DataTable, Label, Markdown, Static, Switch
 
 from ._rich import markdown, markup
 from .oracle_table import OracleTable
 
 
-def render_tags(obj) -> ComposeResult:
+def render_tags(rule_id) -> ComposeResult:
+    obj = index[rule_id]
     if hasattr(obj, "tags") and obj.tags:
-        for tags, value in obj.tags.value.items():
-            msg = f"- {tags}\n"
-            for tag, vv in value.items():
-                msg += f"  - {tag} {vv.value}\n"
-            # yield Pretty(value)
-        yield Markdown(msg)
+        for ruleset, value in obj.tags.value.items():
+            tag_rules = rules[ruleset].rules.tags
+            msg = ""
+            for tag, targets in value.items():
+                if tag not in tag_rules:
+                    msg += f"**{tag} not found** {targets}\n"
+                    continue
+
+                msg += f"*{markdown(tag_rules[tag].description)}* "
+                # msg += f"{targets.value}"
+
+                if isinstance(targets.value, list):
+                    for target in targets.value:
+                        try:
+                            t = index[target]
+                            msg += f"*[{t.name.value}]({target})* "
+                        except KeyError:
+                            msg += f"*{target}*"
+                else:
+                    try:
+                        target = index[targets.value]
+                        msg += f"*[{markdown(target.name)}]({targets.value})*\n"
+                    except KeyError:
+                        msg += f"*{targets.value}*"
+                # yield Pretty(value)
+            yield Markdown(msg)
 
 
 class RuleMarkdown(Markdown):
@@ -189,8 +205,8 @@ class OracleCollectionViewer(RuleViewer):
         if hasattr(collection, "collections"):
             for collection in collection.collections.values():
                 yield Markdown(
-                    f"[{markdown(collection.name)}]({collection.id.value})\n\n"
-                    f"{markdown(collection.summary)}\n\n"
+                    f"- [{markdown(collection.name)}]({collection.id.value}) "
+                    f"{markdown(collection.summary)}\n"
                 )
 
     def on_mount(self):
@@ -206,11 +222,11 @@ class OracleViewer(RuleViewer):
     can_focus = False
 
     def compose(self):
-        oracle = index[self.rule_id]
+        # oracle = index[self.rule_id]
         yield from super().compose()
         yield OracleTable(self.rule_id, id="oracle-table1")
 
-        yield from render_tags(oracle)
+        yield from render_tags(self.rule_id)
 
 
 class EmbeddedOracleViewer(OracleViewer):
@@ -473,7 +489,7 @@ class AssetViewer(RuleViewer):
                     classes="asset-control",
                 )
         # Tags
-        yield from render_tags(asset)
+        yield from render_tags(self.rule_id)
 
 
 def render_variant(self, v) -> ComposeResult:
