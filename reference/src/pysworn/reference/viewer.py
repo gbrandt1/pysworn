@@ -247,23 +247,23 @@ def compose_condition(condition) -> str:
 
         if roll_option.using == "stat":
             stat = markdown(roll_option.stat.value)
-            text += f"roll +[{stat}]({stat})"
+            text += f"Roll +[{stat}]({stat})."
 
         elif roll_option.using == "condition_meter":
             meter = roll_option.condition_meter.value.value
 
-            text += f"roll against [{meter}]({meter}) meter"
+            text += f"Roll +[{meter}]({meter})."
 
         elif isinstance(roll_option.using, SpecialTrackType):
             track = roll_option.using.value.value
 
-            text += f"roll against [{track.replace('_', ' ')}]({track})"
+            text += f"Roll against [{track.replace('_', ' ')}]({track})"
 
         elif roll_option.using == "attached_asset_control":
-            text += f"roll against attached asset {roll_option.control.value}"
+            text += f"Roll against attached asset {roll_option.control.value}"
 
         elif roll_option.using == "asset_control":
-            text += "roll against "
+            text += "Roll against "
             if roll_option.assets:
                 text += " or ".join(asset.value for asset in roll_option.assets)
             else:
@@ -271,7 +271,7 @@ def compose_condition(condition) -> str:
             text += f" {roll_option.control.value}"
 
         elif roll_option.using == "asset_option":
-            text += "roll against "
+            text += "Roll against "
             if roll_option.assets:
                 text += " or ".join(asset.value for asset in roll_option.assets)
             else:
@@ -279,10 +279,10 @@ def compose_condition(condition) -> str:
             text += f" {roll_option.option.value}"
 
         elif roll_option.using == "custom":
-            text += f"roll {roll_option.value} {roll_option.label.value}"
+            text += f"Roll {roll_option.value} {roll_option.label.value}"
 
         elif roll_option.using.value == "progress_track":
-            text += f"roll against {roll_option.using.value}"
+            text += f"Roll against {roll_option.using.value}"
         else:
             msg = roll_option.using
             raise NotImplementedError(msg)

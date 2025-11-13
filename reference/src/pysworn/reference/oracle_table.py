@@ -54,15 +54,6 @@ class OracleTable(DataTable):
             return
         self.move_cursor(row=row_number, scroll=True)
 
-    # def action_select(self):
-    #     otr = index[self.oracle_id.value]
-    #     # row = get_row_by_index(otr, self.cursor_row)
-    #     row = otr.rows[self.cursor_row]
-    #     if row is None:
-    #         self.log(f"No row at cursor {self.cursor_row}")
-    #         return
-    #     self.post_message(OracleTable.Selected(row.id.value))
-
     def update(self, oracle_id) -> None:
         if ".row" in oracle_id:
             oracle_type, oracle_id_ = oracle_id.split(":")
