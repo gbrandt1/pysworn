@@ -12,13 +12,14 @@ from pysworn.datasworn._datasworn import (
     Ruleset,
     SpecialTrackType,
 )
+from pysworn.datasworn.main import get_parent_id
 from pysworn.reference.oracle import get_max_row_widths
 from rich.rule import Rule
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ItemGrid, Vertical, VerticalScroll
 from textual.message import Message
-from textual.widgets import DataTable, Label, Markdown, Static, Switch
+from textual.widgets import DataTable, Label, Markdown, Static, Switch, rule
 
 from ._rich import markdown, markup
 from .oracle_table import OracleTable
@@ -28,6 +29,9 @@ def render_tags(rule_id) -> ComposeResult:
     obj = index[rule_id]
     if hasattr(obj, "tags") and obj.tags:
         for ruleset, value in obj.tags.value.items():
+            if ruleset not in rules:
+                ruleset = "sundered_isles"
+                continue
             tag_rules = rules[ruleset].rules.tags
             msg = ""
             for tag, targets in value.items():
@@ -412,15 +416,15 @@ class MoveCategoryViewer(RuleViewer):
 
 
 class AssetAbilityViewer(RuleViewer):
-    ability: AssetAbility
-
     def compose(self) -> ComposeResult:
-        self.ability = index[self.rule_id]
+        ability = index[self.rule_id]
         yield from super().compose()
-        ability = self.ability
 
+        txt = "⬡ "
+        if ability.name:
+            txt = f"{txt} **{markdown(ability.name)}:**"
         yield Markdown(
-            f"⬡ {markdown(ability.text)}",
+            f"{txt} {markdown(ability.text)}",
             open_links=False,
         )
 
@@ -431,10 +435,6 @@ class AssetAbilityViewer(RuleViewer):
         if ability.oracles:
             for oracle in ability.oracles.values():
                 yield OracleViewer(oracle.id.value, classes="embedded-oracle")
-
-
-class AssetViewer(RuleViewer):
-    asset: Asset
 
     # if ability.enhance_moves:
     #     for enhance_move in ability.enhance_moves:
@@ -454,30 +454,48 @@ class AssetViewer(RuleViewer):
     #             classes="asset-ability",
     #         )
 
-    def compose(self) -> ComposeResult:
-        self.asset = index[self.rule_id]
-        yield from super().compose()
-        asset = self.asset
 
-        if asset.requirement:
+class AssetViewer(RuleViewer):
+    asset: Asset
+
+    def compose(self) -> ComposeResult:
+        yield from super().compose()
+
+        if self.rule_id.split(":")[0] == "asset.ability":
+            asset_id = get_parent_id(self.rule_id)
+            if not asset_id:
+                msg = f"AssetViewer: asset.ability {self.rule_id} requires a parent asset id"
+                raise ValueError(msg)
+            asset = index[asset_id]
+        else:
+            asset = index[self.rule_id]
+
+        if hasattr(asset, "requirement") and asset.requirement:
             yield Markdown(f"{markdown(asset.requirement)}")
 
         # Abilities
         if hasattr(asset, "abilities") and asset.abilities:
             with Vertical(classes="asset-abilities"):
                 for ability in asset.abilities:
-                    # with Vertical(classes="asset-ability"):
-                    #     yield from self.compose_ability(ability)
-                    yield AssetAbilityViewer(ability.id.value, classes="asset-ability")
+                    yield AssetAbilityViewer(ability.id.value)
 
         # Controls
         if hasattr(asset, "controls") and asset.controls:
             for control in asset.controls.values():
                 text = f"{control.label.value.title()}: "
-                if hasattr(control, "field_type") and control.field_type:
-                    text += f"{control.field_type}"
-                if hasattr(control, "max") and control.max:
-                    text += " " + "⬡" * control.max  # ⬢
+                if control.field_type == "condition_meter":
+                    if hasattr(control, "max") and control.max:
+                        text += " " + "⬡" * (control.max + 1)  # ⬢
+                if control.field_type == "checkbox":
+                    text += "[] {control.label.value}"
+                # if hasattr(control, "field_type") and control.field_type:
+                #     text += f"{control.field_type}"
+                if hasattr(control, "controls") and control.controls:
+                    for k, v in control.controls.items():
+                        if k == "out_of_action":
+                            text += f"{markdown(v.value)} []"
+                        else:
+                            text += f"- {k} {v}"
                 if hasattr(control, "moves") and control.moves:
                     if control.moves.recover:
                         text += f" [Recover]({control.moves.recover[0].value})"
@@ -490,6 +508,15 @@ class AssetViewer(RuleViewer):
                 )
         # Tags
         yield from render_tags(self.rule_id)
+
+
+class AssetCollectionViewer(RuleViewer):
+    def compose(self) -> ComposeResult:
+        yield from super().compose()
+        collection = index[self.rule_id]
+        with ItemGrid(min_column_width=54):
+            for asset in collection.contents.values():
+                yield AssetViewer(asset.id.value)
 
 
 def render_variant(self, v) -> ComposeResult:

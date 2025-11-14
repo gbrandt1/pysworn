@@ -1,4 +1,5 @@
 from .viewer import (
+    AssetCollectionViewer,
     AssetViewer,
     AtlasEntryViewer,
     AtlasViewer,
@@ -26,10 +27,13 @@ VIEWER_TYPES = {
     "asset.ability.move": ("assets", AssetViewer),
     "asset.ability.oracle_rollable": ("assets", AssetViewer),
     "asset.ability.oracle_rollable.row": ("assets", AssetViewer),
-    "asset_collection": ("assets", RuleViewer),
+    "asset_collection": ("assets", AssetCollectionViewer),
+    #
     "atlas_collection": ("atlas", AtlasViewer),
     "atlas_entry": ("atlas", AtlasEntryViewer),
+    #
     "classic": ("source", RulesetViewer),
+    #
     "delve": ("source", RulesetViewer),
     "delve_site": ("delve_sites", DelveSiteViewer),
     "delve_site.denizen": ("delve_sites", DelveSiteViewer),
@@ -39,24 +43,33 @@ VIEWER_TYPES = {
     "delve_site_theme": ("site_themes", SiteThemeViewer),
     "delve_site_theme.danger": ("site_themes", SiteThemeViewer),
     "delve_site_theme.feature": ("site_themes", SiteThemeViewer),
+    #
     "move": ("moves", MoveViewer),
     "move.oracle_rollable": ("moves", MoveViewer),
     "move.oracle_rollable.row": ("moves", MoveViewer),
     "move_category": ("moves", MoveCategoryViewer),
+    #
     "npc": ("npcs", NpcViewer),
     "npc.variant": ("npcs", NpcVariantViewer),
     "npc_collection": ("npcs", NpcCollectionViewer),
+    #
     "oracle_collection": ("oracles", OracleCollectionViewer),
     "oracle_rollable": ("oracles", OracleViewer),
     "oracle_rollable.row": ("oracles", OracleViewer),
+    #
     "rarity": ("rarities", RarityViewer),
+    #
     "starforged": ("source", RulesetViewer),
+    #
     "starsmith": ("source", RulesetViewer),
+    #
     "sundered_isles": ("source", RulesetViewer),
+    #
     "truth": ("truths", TruthViewer),
     "truth.option": ("truths", TruthOptionViewer),
     "truth.option.oracle_rollable": ("truths", TruthOptionViewer),
     "truth.option.oracle_rollable.row": ("truths", TruthOptionViewer),
+    #
     "rules": ("rules", RuleViewer),
 }
 

@@ -68,7 +68,7 @@ RuleViewer {
   width: 1fr;
   border: round $primary;
   # border-title-color: auto;
-  # padding: 1 0 0 0;
+  padding: 1 0 0 0;
   &:focus {
     background: $surface;
   }
@@ -92,23 +92,21 @@ Pretty {
 ***********************************************/
 .asset-abilities {
   height: auto;
-  keyline: thin $secondary;
+  # keyline: thin $primary 50%;
 }
-.asset-ability {
+AssetAbilityViewer {
+  border: none;
   height: auto;
-  margin: 1;
-  # keyline: thin  $secondary;
+  # margin: 1;  
 }
 AssetViewer{
+  # max-width: 50;
   height: auto;
   border: round $primary;
   &:focus {
     border: round $primary;
     background: $panel;
   }
-}
-AssetAbilityViewer {
-  border: none;
 }
 /**********************************************
  Oracles
@@ -170,7 +168,7 @@ MoveCategoryViewer {
 }
 MoveOutcome {
   # height: auto;
-  padding: 1;
+  # padding: 1;
     # border: round $secondary;
   &:focus {
     # border: round $primary;
