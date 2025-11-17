@@ -1,20 +1,17 @@
 [project]
-name = "pysworn-reference"
+name = "pysworn-journal"
 version = "0.1.0"
-description = "PySworn Reference Screen"
+description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["pysworn-datasworn", "textual>=6.3.0"]
-
+dependencies = []
 
 [project.scripts]
-pysworn = "pysworn.reference.app:run"
+pysworn = "pysworn.journal.app:run"
 
-[tool.uv]
-package = true
 
 [tool.uv.build-backend]
-module-name = "pysworn.reference"
+module-name = "pysworn.journal"
 
 [dependency-groups]
 dev = ["textual-dev>=1.8.0"]

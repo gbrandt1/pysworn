@@ -144,38 +144,47 @@ class ReferenceScreen(ModalScreen[str]):
     def action_moves(self):
         tabs = self.get_category_tabs()
         tabs.active = "moves"
+        tabs.focus()
 
     def action_assets(self):
         tabs = self.get_category_tabs()
         tabs.active = "assets"
+        tabs.focus()
 
     def action_rarities(self):
         tabs = self.get_category_tabs()
         tabs.active = "rarities"
+        tabs.focus()
 
     def action_npcs(self):
         tabs = self.get_category_tabs()
         tabs.active = "npcs"
+        tabs.focus()
 
     def action_delve_sites(self):
         tabs = self.get_category_tabs()
         tabs.active = "delve_sites"
+        tabs.focus()
 
     def action_site_domains(self):
         tabs = self.get_category_tabs()
         tabs.active = "site_domains"
+        tabs.focus()
 
     def action_site_themes(self):
         tabs = self.get_category_tabs()
         tabs.active = "site_themes"
+        tabs.focus()
 
     def action_atlas(self):
         tabs = self.get_category_tabs()
         tabs.active = "atlas"
+        tabs.focus()
 
     def action_truths(self):
         tabs = self.get_category_tabs()
         tabs.active = "truths"
+        tabs.focus()
 
     debug = reactive(False)
 

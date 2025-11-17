@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "pysworn",
     "pysworn-datasworn",
+    "pysworn-journal",
     "pysworn-reference",
 ]
 
@@ -1035,6 +1036,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "pysworn-datasworn" },
     { name = "pysworn-reference" },
+    { name = "textual" },
 ]
 
 [package.dev-dependencies]
@@ -1052,6 +1054,7 @@ dev = [
 requires-dist = [
     { name = "pysworn-datasworn", editable = "datasworn" },
     { name = "pysworn-reference", editable = "reference" },
+    { name = "textual", specifier = ">=6.5.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1096,6 +1099,21 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
     { name = "pytest-coverage", specifier = ">=0.0" },
 ]
+
+[[package]]
+name = "pysworn-journal"
+version = "0.1.0"
+source = { editable = "journal" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "textual-dev" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "textual-dev", specifier = ">=1.8.0" }]
 
 [[package]]
 name = "pysworn-reference"

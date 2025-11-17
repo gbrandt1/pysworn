@@ -120,7 +120,9 @@ AssetViewer{
   }
 }
 .move-oracle {
-  border: none;
+  border: blank $secondary;
+  border-title-color: $secondary;
+  # border-title-style: bold;
   padding: 1;
   &:focus {
     border: round $primary;

@@ -247,6 +247,19 @@ def rules_():
         print(rules[ruleset].rules)
 
 
+@app.command("print")
+def print_():
+    from pysworn.datasworn import RICH_PRINTERS
+
+    for k in index:
+        if ":" not in k:
+            continue
+        p = RICH_PRINTERS[k.split(":")[0]]
+        if p is None:
+            continue
+        print(p(k))
+
+
 RulesServer()
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pysworn-datasworn",
     "pysworn-reference",
+    "textual>=6.5.0",
 ]
 
 [project.scripts]
@@ -29,7 +30,11 @@ pysworn-datasworn = { workspace = true }
 pysworn-reference = { workspace = true }
 
 [tool.uv.workspace]
-members = ["datasworn", "reference"]
+members = [
+    "datasworn",
+    "reference",
+    "journal",
+]
 
 [dependency-groups]
 dev = [
