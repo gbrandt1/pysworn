@@ -1,12 +1,12 @@
+import re
 from functools import partial
 from re import I
 
 from pysworn.datasworn import index
-from pysworn.datasworn._inspect import Inspect
 from textual.app import App, ComposeResult
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 from textual.containers import VerticalScroll
-from textual.widgets import Footer, Header, RichLog
+from textual.widgets import Footer, Header, RichLog, rule
 
 
 class PyswornCommands(Provider):
@@ -68,11 +68,18 @@ class ProviderApp(App):
         yield Footer()
 
     def view_link(self, link: str) -> None:
-        from rich.pretty import Pretty
+        from pysworn.datasworn._inspect import Inspect
+        from pysworn.journal.renderables import RENDERABLES
 
         richlog: RichLog = self.query_one("#richlog", RichLog)
         richlog.write(link)
-        richlog.write(Inspect(index[link], max_depth=1))
+        rule_type = link
+        if ":" in link:
+            rule_type = link.split(":")[0]
+        renderable = RENDERABLES.get(rule_type)
+        richlog.write(Inspect(index[link], max_depth=2))
+        if renderable:
+            richlog.write(renderable(index[link]))
 
 
 if __name__ == "__main__":
