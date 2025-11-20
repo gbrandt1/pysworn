@@ -1,0 +1,26 @@
+[project]
+name = "pysworn-renderables"
+version = "0.1.0"
+description = "PySworn Rich Renderables"
+readme = "README.md"
+authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
+requires-python = ">=3.12"
+dependencies = [
+    "pysworn-datasworn",
+]
+
+[project.scripts]
+renderables = "pysworn.renderables:main"
+
+[tool.uv]
+package = true
+
+[tool.uv.build-backend]
+module-name = "pysworn.renderables"
+
+[tool.uv.sources]
+pysworn-datasworn = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"

@@ -4,14 +4,14 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "pydantic>=2.12.4",
-    "pysworn-datasworn",
-]
+dependencies = ["pydantic>=2.12.4", "pysworn-datasworn"]
 
 [project.scripts]
-pysworn = "pysworn.journal.app:run"
+pysworn = "pysworn.journal.app:main"
 provider-test = "pysworn.journal.provider:main"
+
+[tool.uv]
+package = true
 
 [tool.uv.build-backend]
 module-name = "pysworn.journal"

@@ -1,6 +1,4 @@
-import re
 from functools import partial
-from re import I
 
 from pysworn.datasworn import index
 from textual.app import App, ComposeResult
@@ -69,7 +67,8 @@ class ProviderApp(App):
 
     def view_link(self, link: str) -> None:
         from pysworn.datasworn._inspect import Inspect
-        from pysworn.journal.renderables import RENDERABLES
+
+        from renderables.src.pysworn.renderables.renderables import RENDERABLES
 
         richlog: RichLog = self.query_one("#richlog", RichLog)
         richlog.write(link)

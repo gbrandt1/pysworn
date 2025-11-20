@@ -28,10 +28,10 @@ console = Console()
 # console = Console(file=StringIO(), force_terminal=True)
 
 
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
+# FORMAT = "%(message)s"
+# logging.basicConfig(
+#     level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+# )
 log = logging.getLogger(__name__)
 
 

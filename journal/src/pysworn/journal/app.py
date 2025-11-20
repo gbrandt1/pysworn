@@ -4,7 +4,8 @@ from pysworn.datasworn import index
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, Header, Input, RichLog
+from textual.containers import Horizontal
+from textual.widgets import Footer, Header, Input, OptionList, RichLog
 
 
 class JournalApp(App):
