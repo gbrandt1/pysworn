@@ -82,6 +82,10 @@ class ProviderApp(App):
             richlog.write(renderable(index[link]))
 
 
-if __name__ == "__main__":
+def main() -> None:
     app = ProviderApp()
     app.run()
+
+
+if __name__ == "__main__":
+    main()

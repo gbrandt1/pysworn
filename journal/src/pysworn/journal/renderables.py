@@ -1,4 +1,4 @@
-from re import M
+from re import A, M
 
 from pysworn.datasworn import index
 from rich.console import Group
@@ -13,11 +13,36 @@ class RuleSetRenderable:
         msg = f"# {self.ruleset.title.value}\n\n"
         msg += f"{self.ruleset.url.value}\n\n"
         msg += f"{self.ruleset.license.value}\n\n"
-        msg += f"Authors: "
+        msg += "Authors: "
         for author in self.ruleset.authors:
             msg += f"{author.name.value} "
             # {author.email.value} {author.url.value}\n"
         return Markdown(msg)
+
+
+class AssetAbilityRenderable:
+    def __init__(self, ability):
+        self.ability = ability
+
+    def __rich__(self):
+        msg = "* " if self.ability.enabled else "o "
+        msg += f"{self.ability.text.value}\n\n"
+        moves = []
+        # for move in self.ability.moves:
+        #     moves.append(MoveRenderable(move))
+        return Group(Markdown(msg), *moves)
+
+
+class AssetRenderable:
+    def __init__(self, asset):
+        self.asset = asset
+
+    def __rich__(self):
+        msg = f"{self.asset.category.value} {self.asset.name.value}\n\n"
+        abilities = []
+        for ability in self.asset.abilities:
+            abilities.append(AssetAbilityRenderable(ability))
+        return Group(Markdown(msg), *abilities)
 
 
 class MoveRenderable:
@@ -34,7 +59,7 @@ class OracleRollableRenderable:
         self.table = table
 
     def __rich__(self):
-        msg = f"# {self.table.name.value}\n\n"
+        msg = f"## {self.table.name.value}\n\n"
         # msg += f"{self.table.roll} {self.table.text.value}"
         rows = []
         for row in self.table.rows:
@@ -48,10 +73,10 @@ class OracleRollableRowRenderable:
 
     def __rich__(self):
         msg = f"{self.row.roll.min}-{self.row.roll.max}: {self.row.text.value} "
-        if self.row.text2:
-            msg += f"{self.row.text2.value} "
-        if self.row.text3:
-            msg += f"{self.row.text3.value}"
+        # if self.row.text2:
+        #     msg += f"{self.row.text2.value} "
+        # if self.row.text3:
+        #     msg += f"{self.row.text3.value}"
         return Markdown(msg)
 
 
@@ -69,11 +94,42 @@ class RarityRenderable:
         return Markdown(msg)
 
 
+class TruthOptionRenderable:
+    def __init__(self, truth):
+        self.truth = truth
+
+    def __rich__(self):
+        msg = ""
+        roll = self.truth.roll
+        msg += f"**{roll.min}-{roll.max}** "
+        if self.truth.summary:
+            msg += f"**{self.truth.summary.value}**\n\n"
+        msg += f"{self.truth.description.value}\n\n"
+        oracles = []
+        for oracle in self.truth.oracles.values():
+            oracles.append(OracleRollableRenderable(oracle))
+        msg2 = f"\n> *{self.truth.quest_starter.value}*\n\n"
+        return Group(Markdown(msg), *oracles, Markdown(msg2))
+
+
+class TruthRenderable:
+    def __init__(self, truth):
+        self.truth = truth
+
+    def __rich__(self):
+        name = f"# {self.truth.name.value}"
+        your_character = f"> *{self.truth.your_character.value}*\n\n"
+        options = []
+        for option in self.truth.options:
+            options.append(TruthOptionRenderable(option))
+        return Group(Markdown(name), *options, Markdown(your_character))
+
+
 RENDERABLES = {
-    "asset": None,
-    "asset.ability": None,
-    "asset.ability.move": None,
-    "asset.ability.oracle_rollable": None,
+    "asset": AssetRenderable,
+    "asset.ability": AssetAbilityRenderable,
+    "asset.ability.move": MoveRenderable,
+    "asset.ability.oracle_rollable": OracleRollableRenderable,
     "asset.ability.oracle_rollable.row": OracleRollableRowRenderable,
     "asset_collection": None,
     "atlas_collection": None,
@@ -102,8 +158,8 @@ RENDERABLES = {
     "starforged": RuleSetRenderable,
     "starsmith": RuleSetRenderable,
     "sundered_isles": RuleSetRenderable,
-    "truth": None,
-    "truth.option": None,
+    "truth": TruthRenderable,
+    "truth.option": TruthOptionRenderable,
     "truth.option.oracle_rollable": None,
     "truth.option.oracle_rollable.row": OracleRollableRowRenderable,
     "rules": None,
