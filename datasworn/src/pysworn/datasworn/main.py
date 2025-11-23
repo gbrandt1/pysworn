@@ -1,26 +1,21 @@
 import logging
 import time
-from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import fields, is_dataclass
 from datetime import datetime
 
 # from io import StringIO
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
 import orjson as json
 import pysworn.datasworn._datasworn as _datasworn
 import typer
 from rich import print
 from rich.console import Console
-from rich.logging import RichHandler
-from rich.rule import Rule
-from rich.table import Table
 from rich.traceback import install
 
 from ._datasworn import *  # noqa
-from ._inspect import Inspect
 
 install()
 
@@ -57,6 +52,27 @@ id_tree: dict[str, dict] = {}
 rules: dict[str, _datasworn.RulesPackage] = {}
 
 
+class ParsedId:
+    def __init__(self, id_: str):
+        self.rule_type = None
+        self.ruleset = None
+        self.category = None
+        if ":" in id_:
+            self.rule_type, path = id_.split(":")
+            self.ruleset, self.category, *_ = path.split("/")
+        elif id_ in RULESETS:
+            self.ruleset = id_
+            self.rule_type = "source"
+        else:
+            pass
+
+    # def __str__(self):
+    #     return f"{self.rule_type}:{self.ruleset}/{self.category}"
+
+    def __repr__(self):
+        return f"<ParsedId {self.rule_type}:{self.ruleset}/{self.category}>"
+
+
 def add_to_index(ids, index, obj):
     ids_ = ids
     if hasattr(obj, "id"):  # and isinstance(obj.id, IDType):
@@ -87,7 +103,7 @@ def add_to_index(ids, index, obj):
 class RulesServer:
     def load_rules(self, ruleset_path: str) -> _datasworn.RulesPackage:
         path = Path(__file__).parent.absolute()
-        with Path(path / ruleset_path).open("rt") as file:
+        with Path(path / "_datasworn" / ruleset_path).open("rt") as file:
             rules_dict = json.loads(file.read())
         return rules_dict
 
@@ -147,120 +163,26 @@ def get_rule_types():
     return rule_types
 
 
-@app.command()
-def count(
-    verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
-) -> None:
-    """Count IDs by prefix."""
-    counts = []
-    counts_by_ruleset = defaultdict(list)
-
-    for k, v in index.items():
-        # if "row" in k:
-        #     continue
-        if verbose:
-            print(k, type(v))
-            print(Inspect(v, max_depth=1, max_length=1, max_string=100))
-        sk = k.split(":")
-        counts.append(sk[0])
-
-        if len(sk) < 2:
-            ruleset = sk[0]
+def breadcrumbs(id_: str):
+    parsed_id = ParsedId(id_)
+    if not parsed_id.category:
+        return [parsed_id.ruleset]
+    parts = []  # [parsed_id.ruleset, parsed_id.category]
+    next_id = id_
+    while next_id:
+        obj = index[next_id]
+        if hasattr(obj, "name") and obj.name:
+            parts.append(obj.name.value)
+        elif hasattr(obj, "label") and obj.label:
+            parts.append(obj.name.value)
         else:
-            ruleset = sk[1].split("/")[0]
-        counts_by_ruleset[ruleset].append(sk[0])
-
-    # table = Table("ID Prefix", "Count")
-    # for k, v in Counter(counts).most_common():
-    #     table.add_row(k, repr(v))
-    # print(table)
-
-    table = Table("ID Prefix", "Total", *RULESETS)
-    # for k, v in Counter(counts).most_common():
-    for t in Counter(counts).most_common():
-        # print(t)
-        k = t[0]
-        v = t[1]
-        # row = []
-        # print (k, v)
-        table.add_row(
-            k,
-            repr(v),
-            *[repr(counts_by_ruleset[ruleset].count(k)) for ruleset in RULESETS],
-        )
-        # for ruleset in RULESETS:
-        #     row.append()
-        # table.add_row(k, *row)
-
-        # table.add_row(k, repr(v))
-    print(table)
-
-
-@app.command()
-def types():
-    rule_types = get_rule_types()
-    # pprint(rule_types, expand_all=True)
-    for r in sorted(rule_types):
-        print(r)
-
-
-@app.command()
-def ids(
-    skip_rows: Annotated[bool, typer.Option("--skip-rows", "-r")] = False,
-    parents: Annotated[bool, typer.Option("--parents", "-p")] = False,
-):
-    for k in index.keys():
-        if skip_rows and ".row:" in k:
-            continue
-        if not parents:
-            print(k)
-        else:
-            print(f"{k} --> {get_parent_id(k)}")
-
-    # print(id_tree)
-
-
-@app.command()
-def dump():
-    # print(Inspect(rules, max_depth=1, max_length=1, max_string=10))
-    # print(vars(rules))
-    # inspect(rules._re)
-    # with console.capture() as capture:
-    for ruleset in rules:
-        print(Rule(ruleset))
-        # console.print(Inspect(rules[ruleset], max_depth=1, max_length=1, max_string=100))
-        for category in vars(rules[ruleset]):
-            print(f"  {category}")
-            p = Inspect(
-                getattr(rules[ruleset], category),
-                max_depth=1,
-                max_length=None,
-                max_string=None,
-            )
-            console.print(p)
-
-
-@app.command("rules")
-def rules_():
-    for ruleset in rules:
-        print(Rule(ruleset))
-        print(rules[ruleset].rules)
-
-
-@app.command("print")
-def print_():
-    from pysworn.datasworn import RICH_PRINTERS
-
-    for k in index:
-        if ":" not in k:
-            continue
-        p = RICH_PRINTERS[k.split(":")[0]]
-        if p is None:
-            continue
-        print(p(k))
+            break
+        next_id = get_parent_id(next_id)
+    parts.append(parsed_id.category)
+    parts.append(parsed_id.ruleset)
+    parts.reverse()
+    print(parts)
+    return parts
 
 
 RulesServer()
-
-if __name__ == "__main__":
-    app()

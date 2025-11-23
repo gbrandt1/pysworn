@@ -21,7 +21,7 @@ DATASWORN_META = [
     # "title",
     # "id",
     # "icon",
-    "source",
+    # "source",
     # "url",
     "i18n",
     # "template",

@@ -1,5 +1,3 @@
-from ast import Del
-
 from pysworn.renderables.renderables import (
     AssetAbilityRenderable,
     AssetRenderable,
@@ -18,6 +16,7 @@ from pysworn.renderables.renderables import (
     OracleRollableRowRenderable,
     RarityRenderable,
     RuleSetRenderable,
+    RulesRenderable,
     TruthOptionRenderable,
     TruthRenderable,
 )
@@ -59,5 +58,5 @@ RENDERABLES = {
     "truth.option": TruthOptionRenderable,
     "truth.option.oracle_rollable": OracleRollableRenderable,
     "truth.option.oracle_rollable.row": OracleRollableRowRenderable,
-    "rules": None,
+    "rules": RulesRenderable,
 }

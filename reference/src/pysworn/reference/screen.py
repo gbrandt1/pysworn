@@ -1,7 +1,5 @@
-from calendar import c
-from math import e
 
-from pysworn.datasworn import RULESETS, get_parent_id, index, rules
+from pysworn.datasworn import RULESETS, index, rules
 from pysworn.reference import (
     VIEWER_TYPES,
     # ReferenceTree,
@@ -12,7 +10,6 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ScrollableContainer, VerticalScroll
 from textual.css.query import NoMatches
-from textual.events import Key
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen

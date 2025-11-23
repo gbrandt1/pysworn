@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-datasworn = "pysworn.datasworn.main:app"
+datasworn = "pysworn.datasworn.cli:app"
 
 [tool.hatch.version]
 path = 'src/pysworn/core/__init__.py'

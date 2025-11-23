@@ -1,9 +1,10 @@
 import random
+from re import M
+from turtle import st
 
 from pysworn.datasworn import index, rules
 from pysworn.datasworn._datasworn import (
     Asset,
-    AssetAbility,
     AtlasCollection,
     AtlasEntry,
     DelveSiteDomain,
@@ -19,10 +20,18 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ItemGrid, Vertical, VerticalScroll
 from textual.message import Message
-from textual.widgets import DataTable, Label, Markdown, Static, Switch, rule
+from textual.widgets import DataTable, Label, Markdown, Pretty, Static, Switch
 
 from ._rich import markdown, markup
 from .oracle_table import OracleTable
+
+RANKS = {
+    1: "Troublesome (3 progress per harm; inflicts 1 harm)",
+    2: "Dangerous (2 progress per harm; inflicts 2 harm)",
+    3: "Formidable (1 progress per harm; inflicts 3 harm)",
+    4: "Extreme (2 ticks per harm; inflicts 4 harm)",
+    5: "Epic (1 tick per harm; inflicts 5 harm)",
+}
 
 
 def render_tags(rule_id) -> ComposeResult:
@@ -56,7 +65,20 @@ def render_tags(rule_id) -> ComposeResult:
                     except KeyError:
                         msg += f"*{targets.value}*"
                 # yield Pretty(value)
-            yield Markdown(msg)
+            yield RuleMarkdown(msg)
+
+
+def render_suggestions(rule_id) -> ComposeResult:
+    obj = index[rule_id]
+    if hasattr(obj, "suggestions") and obj.suggestions:
+        msg = []
+        for s in obj.suggestions.value:
+            if s.value in index:
+                sobj = index[s.value]
+                msg.append(f"[{sobj.name.value}]({s.value})")
+            else:
+                msg.append(f"{s.value}")
+    yield RuleMarkdown(", ".join(msg))
 
 
 class RuleMarkdown(Markdown):
@@ -123,20 +145,38 @@ class RuleViewer(VerticalScroll):
         self.rule_id = rule_id
 
     def compose(self) -> ComposeResult:
-        # yield RuleMarkdown(id="rule-header", open_links=False)
         self.id_map["rule-header"] = self.rule_id
         obj = index[self.rule_id]
         if hasattr(obj, "color") and obj.color:
             self.styles.border_title_color = obj.color.value
             self.styles.border = ("solid", obj.color.value)
-        if hasattr(obj, "name") and obj.name:
-            self.border_title = obj.name.value.upper()
-        if hasattr(obj, "category") and obj.category:
-            self.border_subtitle = obj.category.value.upper()
+
+        if hasattr(obj, "canonical_name") and obj.canonical_name:
+            yield RuleMarkdown(f"**{obj.canonical_name.value.upper()}**\n\n")
+        elif hasattr(obj, "name") and obj.name:
+            yield RuleMarkdown(f"**{obj.name.value.upper()}**\n\n")
+
+        if hasattr(obj, "type") and isinstance(obj.type, str):
+            self.border_title = obj.type.upper()
         if hasattr(obj, "summary") and obj.summary:
             yield RuleMarkdown(f"**{markdown(obj.summary)}**")
         if hasattr(obj, "description") and obj.description:
             yield RuleMarkdown(f"{markdown(obj.description)}")
+        if hasattr(obj, "suggestions") and obj.suggestions:
+            yield from render_suggestions(self.rule_id)
+        if hasattr(obj, "comment") and obj.comment:
+            yield RuleMarkdown(f"*{obj.comment}*")
+        # if hasattr(obj, "tags") and obj.tags:
+        #     yield from render_tags(self.rule_id)
+        # if hasattr(obj, "oracle") and obj.oracle:
+        #     yield OracleTable(obj)
+        if hasattr(obj, "source") and obj.source:
+            source = f"[i]{obj.source.title.value}"
+            # source = f"[i][{obj.source.title.value}]({obj.source.url.value})"
+            if obj.source.page:
+                source += f" page {obj.source.page.value}"
+
+            self.border_subtitle = source
 
     async def action_debug(self):
         self.debug = not self.debug
@@ -185,7 +225,7 @@ class RulesetViewer(RuleViewer):
             f"This work uses the official JSON Files from "
             f"[Datasworn Version {r.datasworn_version.value}](https://github.com/rsek/datasworn/tree/v0.1.0)."
         )
-        yield Markdown(msg)
+        yield RuleMarkdown(msg)
 
     def on_markdown_link_clicked(self, event):
         event.stop()
@@ -208,13 +248,13 @@ class OracleCollectionViewer(RuleViewer):
 
         if hasattr(collection, "collections"):
             for collection in collection.collections.values():
-                yield Markdown(
+                yield RuleMarkdown(
                     f"- [{markdown(collection.name)}]({collection.id.value}) "
                     f"{markdown(collection.summary)}\n"
                 )
 
     def on_mount(self):
-        self.log(f"OracleCollectionViewer {self.rule_id} wmax {self.wmax}")
+        # self.log(f"OracleCollectionViewer {self.rule_id} wmax {self.wmax}")
         try:
             grid = self.query_one(ItemGrid)
             grid.min_column_width = min(self.wmax + 8, 50)
@@ -237,9 +277,9 @@ class EmbeddedOracleViewer(OracleViewer):
     can_focus = False
     can_focus_children = True
 
-    def on_mount(self):
-        table = self.query_one(OracleTable)
-        table.show_header = False
+    # def on_mount(self):
+    # table = self.query_one(OracleTable)
+    # table.show_header = False
 
 
 def compose_condition(condition) -> str:
@@ -334,22 +374,20 @@ class MoveViewer(RuleViewer):
             with Vertical(classes="move-replaces"):
                 for replace in move.replaces:
                     target = index[replace.value]
-                    yield Markdown(
+                    yield RuleMarkdown(
                         f"*Replaces [{target.name.value}]({replace.value})*",
-                        open_links=False,
                         classes="move-replace",
                     )
 
         if move.roll_type == "no_roll":
-            yield Markdown(
+            yield RuleMarkdown(
                 markdown(move.text),
-                open_links=False,
                 classes="move-name",
             )
         else:
             # Triggers
             if hasattr(move, "trigger") and move.trigger:
-                yield Markdown(compose_trigger(move.trigger), open_links=False)
+                yield RuleMarkdown(compose_trigger(move.trigger))
 
             # Momentum Burn
             if hasattr(move, "allow_momentum_burn") and move.allow_momentum_burn:
@@ -366,21 +404,18 @@ class MoveViewer(RuleViewer):
                         markdown(move.outcomes.strong_hit.text),
                         outcome=f"{self.rule_id};strong_hit",
                         id="outcome-strong-hit",
-                        open_links=False,
                         classes="move-outcome",
                     )
                     yield MoveOutcome(
                         markdown(move.outcomes.weak_hit.text),
                         outcome=f"{self.rule_id};weak_hit",
                         id="outcome-weak-hit",
-                        open_links=False,
                         classes="move-outcome",
                     )
                     yield MoveOutcome(
                         markdown(move.outcomes.miss.text),
                         outcome=f"{self.rule_id};miss",
                         id="outcome-miss",
-                        open_links=False,
                         classes="move-outcome",
                     )
 
@@ -410,7 +445,7 @@ class MoveCategoryViewer(RuleViewer):
 
             msg = f"## [{markdown(m.name)}]({m.id.value})\n"
             msg += f"{markdown(m.text)}"
-            yield Markdown(msg, open_links=False, classes="move-text")
+            yield RuleMarkdown(msg, classes="move-text")
 
             yield Static(Rule(characters="━", style="black"))
 
@@ -423,9 +458,8 @@ class AssetAbilityViewer(RuleViewer):
         txt = "⬡ "
         if ability.name:
             txt = f"{txt} **{markdown(ability.name)}:**"
-        yield Markdown(
+        yield RuleMarkdown(
             f"{txt} {markdown(ability.text)}",
-            open_links=False,
         )
 
         if ability.moves:
@@ -448,9 +482,8 @@ class AssetAbilityViewer(RuleViewer):
     #                     text += f"{e.value} "
     #         if hasattr(enhance_move, "trigger") and enhance_move.trigger:
     #             text += compose_trigger(enhance_move.trigger)
-    #         yield Markdown(
+    #         yield RuleMarkdown(
     #             f"{text}",
-    #             open_links=False,
     #             classes="asset-ability",
     #         )
 
@@ -471,7 +504,7 @@ class AssetViewer(RuleViewer):
             asset = index[self.rule_id]
 
         if hasattr(asset, "requirement") and asset.requirement:
-            yield Markdown(f"{markdown(asset.requirement)}")
+            yield RuleMarkdown(f"{markdown(asset.requirement)}")
 
         # Abilities
         if hasattr(asset, "abilities") and asset.abilities:
@@ -501,9 +534,8 @@ class AssetViewer(RuleViewer):
                         text += f" [Recover]({control.moves.recover[0].value})"
                     if control.moves.suffer:
                         text += f" [Suffer]({control.moves.suffer[0].value})"
-                yield Markdown(
+                yield RuleMarkdown(
                     text,
-                    open_links=False,
                     classes="asset-control",
                 )
         # Tags
@@ -521,23 +553,26 @@ class AssetCollectionViewer(RuleViewer):
 
 def render_variant(self, v) -> ComposeResult:
     msg = ""
-    if hasattr(v, "nature") and v.nature:
-        msg += f"**{markdown(v.nature.value)}** Rank {v.rank.value}\n"
 
-    if hasattr(v, "drives") and v.drives:
-        msg += "### Drives\n"
-        for d in v.drives:
-            msg += f"- {markdown(d)}\n"
+    msg += f"---\n**Rank:** {RANKS[v.rank.value]} {markdown(v.nature.value)}\n\n"
+
     if hasattr(v, "features") and v.features:
-        msg += "### Features\n"
+        msg += "**Features:**\n"
         for f in v.features:
             msg += f"- {markdown(f)}\n"
+
+    if hasattr(v, "drives") and v.drives:
+        msg += "\n**Drives:**\n"
+        for d in v.drives:
+            msg += f"- {markdown(d)}\n"
+
     if hasattr(v, "tactics") and v.tactics:
-        msg += "### Tactics\n"
+        msg += "\n**Tactics:**\n"
         for t in v.tactics:
             msg += f"- {markdown(t)}\n"
 
-    yield Markdown(msg, open_links=False)
+    msg += "---\n"
+    yield RuleMarkdown(msg)
 
 
 class NpcVariantViewer(RuleViewer):
@@ -549,15 +584,26 @@ class NpcVariantViewer(RuleViewer):
 
 class NpcViewer(RuleViewer):
     def compose(self):
-        yield from super().compose()
-        self.npc = index[self.rule_id]
-        npc = self.npc
+        # yield from super().compose()
+        npc = index[self.rule_id]
+
+        msg = f"# {npc.name.value.upper()}\n\n"
+        yield RuleMarkdown(msg, classes="npc-name")
+
         yield from render_variant(self, npc)
+
+        if hasattr(npc, "description") and npc.description:
+            yield RuleMarkdown(f"{markdown(npc.description)}\n")
+
         if hasattr(npc, "variants") and npc.variants:
             for variant in npc.variants.values():
                 yield NpcVariantViewer(variant.id.value)
+
         if hasattr(npc, "quest_starter") and npc.quest_starter:
-            yield Markdown(f"> *{markdown(npc.quest_starter)}*\n", open_links=False)
+            yield RuleMarkdown(f"> *Quest Starter: {markdown(npc.quest_starter)}*\n")
+
+        if hasattr(npc, "your_truth") and npc.your_truth:
+            yield RuleMarkdown(f"**YOUR TRUTH**\n\n**{markdown(npc.your_truth)}**\n")
 
 
 class NpcCollectionViewer(RuleViewer):
@@ -567,10 +613,10 @@ class NpcCollectionViewer(RuleViewer):
         for npc in collection.contents.values():
             n = index[npc.id.value]
 
-            msg = f"## [{markdown(n.name)}]({n.id.value})\n"
-            if hasattr(n, "description"):
-                msg += f"{markdown(n.description)}"
-            yield Markdown(msg, open_links=False, classes="npc-text")
+            msg = f"- [{markdown(n.name)}]({n.id.value})\n"
+            # if hasattr(n, "description"):
+            #     msg += f"{markdown(n.description)}"
+            yield RuleMarkdown(msg, classes="npc-text")
 
 
 class TruthOptionViewer(RuleViewer):
@@ -584,7 +630,7 @@ class TruthOptionViewer(RuleViewer):
         # with Vertical():
         yield from super().compose()
         if hasattr(option, "quest_starter") and option.quest_starter:
-            yield Markdown(f"> *{markup(option.quest_starter)}*", open_links=False)
+            yield RuleMarkdown(f"> *{markup(option.quest_starter)}*")
 
         if option.oracles:
             for oracle in option.oracles.values():
@@ -664,14 +710,10 @@ class AtlasEntryViewer(RuleViewer):
         if ae.quest_starter:
             msg += f"\n> *{markdown(ae.quest_starter)}*"
 
-        yield Markdown(msg, open_links=False)
+        yield RuleMarkdown(msg)
 
 
-class AtlasViewer(
-    RuleViewer,
-    # can_focus=False,
-    # can_focus_children=True,
-):
+class AtlasViewer(RuleViewer):
     collection: AtlasCollection
 
     def compose(self) -> ComposeResult:
@@ -679,40 +721,46 @@ class AtlasViewer(
         self.collection = index[self.rule_id]
         collection = self.collection
 
-        for atlas_entry in collection.contents.values():
+        for n, atlas_entry in enumerate(collection.contents.values(), start=1):
             ae = index[atlas_entry.id.value]
 
-            msg = f"## [{markdown(ae.name)}]({ae.id.value})\n"
-            msg += f"{markdown(ae.summary)}"
-            # widget =
-            # widget.border_title = ae.name.value
-            yield Markdown(msg, open_links=False, classes="atlas-entry-summary")
+            msg = (
+                f"**{n} [{markdown(ae.name)}]({ae.id.value}):** {markdown(ae.summary)}"
+            )
+            yield RuleMarkdown(msg, classes="atlas-entry-summary")
 
 
 class DelveSiteViewer(RuleViewer):
-    # delve_site: DelveSite
+    RANK = {
+        1: "",
+        2: "Dangerous",
+        3: "Formidable",
+        4: "Extreme",
+        5: "Epic",
+    }
 
     def render_link(self, name: str, link: str) -> str:
         if link in index:
             target = index[link]
-            return f"{name}: [{markdown(target.name)}]({link})\n"
+            return f"{name} [{markdown(target.name)}]({link})\n\n"
         else:
-            return f"{name}: ({link})\n"
+            return f"{name}({link})\n\n"
 
     def compose(self):
-        self.delve_site = index[self.rule_id]
+        delve_site = index[self.rule_id]
+
+        text = f"**Rank:** {self.RANK[delve_site.rank.value]}\n\n"
+        text += self.render_link("**Theme:**", delve_site.theme.value)
+        text += self.render_link("**Domain:**", delve_site.domain.value)
+        text += self.render_link("**Region:**", delve_site.region.value)
+        yield RuleMarkdown(text)
         yield from super().compose()
-        delve_site = self.delve_site
 
         # text = f"# {markup(delve_site.name)}"
-        text = f"Rank: {delve_site.rank.value} \n"
-        text += self.render_link("Domain", delve_site.domain.value)
-        text += self.render_link("Region", delve_site.region.value)
-        text += self.render_link("Theme", delve_site.theme.value)
 
-        text += "## Denizens\n"
-        text += "|  | Frequency | Name | NPC\n"
-        text += "| --- | --- | --- | ---\n"
+        text = "## Denizens\n"
+        text += "Roll |  Name | NPC\n"
+        text += " ---|---|--- \n"
         for denizen in delve_site.denizens:
             name = denizen.name.value if denizen.name else ""
             npc = ""
@@ -723,11 +771,12 @@ class DelveSiteViewer(RuleViewer):
                     target = index[denizen.npc.value]
                     npc = f"[{markdown(target.name)}]({denizen.npc.value})"
             text += (
-                f"| {denizen.roll.min:3}-{denizen.roll.max:3} "
-                f"| {markup(denizen.frequency)} | {name}| {npc}\n"
+                f" {markup(denizen.frequency)} "
+                f"{denizen.roll.min:3}-{denizen.roll.max:3} "
+                f" | {name}| {npc}\n"
             )
 
-        yield Markdown(text, open_links=False)
+        yield RuleMarkdown(text)
 
 
 def render_table(title: str, items) -> ComposeResult:
@@ -766,9 +815,14 @@ class SiteDomainViewer(RuleViewer):
         yield from render_table("Feature", site_domain.features)
         yield from render_table("Danger", site_domain.dangers)
         if site_domain.name_oracle:
-            yield EmbeddedOracleViewer(
-                site_domain.name_oracle.value, classes="embedded-oracle"
-            )
+            yield RuleMarkdown("[Name Oracle](site_domain.name_oracle.value)\n")
+            # yield EmbeddedOracleViewer(
+            #     site_domain.name_oracle.value, classes="embedded-oracle"
+            # )
+        # if site_domain.theme_oracle:
+        #     yield EmbeddedOracleViewer(
+        #         site_domain.theme_oracle.value, classes="embedded-oracle"
+        #     )
 
 
 class SiteThemeViewer(RuleViewer):
@@ -777,7 +831,9 @@ class SiteThemeViewer(RuleViewer):
     def compose(self) -> ComposeResult:
         yield from super().compose()
         self.site_theme = index[self.rule_id]
+        yield RuleMarkdown("**FEATURES**\n")
         yield from render_table("Feature", self.site_theme.features)
+        yield RuleMarkdown("**DANGERS**\n")
         yield from render_table("Danger", self.site_theme.dangers)
 
 
@@ -785,14 +841,10 @@ class RarityViewer(RuleViewer):
     rarity: Rarity
 
     def compose(self) -> ComposeResult:
-        yield from super().compose()
         rarity = index[self.rule_id]
         asset = index[rarity.asset.value]
-
-        # yield f"*{self.rarity.name.value}*"
-        yield Markdown(
-            f"[{markdown(asset.name)}]({rarity.asset.value}) XP cost: {rarity.xp_cost}",
-            open_links=False,
+        yield RuleMarkdown(
+            f"[{asset.category.value.upper()}: {asset.name.value.upper()}]({rarity.asset.value}) "
         )
-        if hasattr(rarity, "comment") and rarity.comment:
-            yield Markdown(rarity.comment)
+        yield RuleMarkdown(f"{rarity.xp_cost} XP")
+        yield from super().compose()

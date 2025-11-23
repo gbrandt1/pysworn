@@ -10,12 +10,11 @@ requires-python = ">=3.12"
 dependencies = [
     "pysworn-datasworn",
     "pysworn-reference",
+    "pysworn-renderables",
     "textual>=6.5.0",
+    "typer>=0.20.0",
 ]
 
-[project.scripts]
-pysworn = "pysworn.reference.app:run"
-datasworn = "pysworn.datasworn.main:app"
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
@@ -28,14 +27,10 @@ package = false # the project itself is not a package
 [tool.uv.sources]
 pysworn-datasworn = { workspace = true }
 pysworn-reference = { workspace = true }
+pysworn-renderables = { workspace = true }
 
 [tool.uv.workspace]
-members = [
-    "datasworn",
-    "reference",
-    "journal",
-    "renderables",
-]
+members = ["datasworn", "reference", "journal", "renderables"]
 
 [dependency-groups]
 dev = [

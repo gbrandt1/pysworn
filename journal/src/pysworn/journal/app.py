@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from pysworn.datasworn import index
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding

@@ -1,10 +1,7 @@
 # import logging
 import random
-from operator import le
 
 from pysworn.datasworn.main import index
-from rich.markdown import Markdown
-from rich.text import Text
 from textual import events, on
 from textual.binding import Binding
 from textual.message import Message

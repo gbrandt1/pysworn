@@ -5,12 +5,10 @@ description = "PySworn Rich Renderables"
 readme = "README.md"
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
-dependencies = [
-    "pysworn-datasworn",
-]
+dependencies = ["pysworn-datasworn"]
 
 [project.scripts]
-renderables = "pysworn.renderables:main"
+renderables = "pysworn.renderables.__main__:app"
 
 [tool.uv]
 package = true

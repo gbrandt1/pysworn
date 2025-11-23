@@ -4,7 +4,7 @@ from pysworn.datasworn import index
 from textual.app import App, ComposeResult
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 from textual.containers import VerticalScroll
-from textual.widgets import Footer, Header, RichLog, rule
+from textual.widgets import Footer, Header, RichLog
 
 
 class PyswornCommands(Provider):

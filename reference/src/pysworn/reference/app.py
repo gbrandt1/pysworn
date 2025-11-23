@@ -1,11 +1,9 @@
 import logging
-from termios import CSUSP
 
 from pysworn.datasworn import RulesPackageRuleset, rules
 
 # from pysworn.tui.commands import DataswornProvider
 from textual.app import App, ComposeResult
-from textual.binding import Binding
 from textual.containers import Container
 from textual.logging import TextualHandler
 from textual.screen import ModalScreen

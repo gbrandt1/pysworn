@@ -1132,7 +1132,9 @@ source = { virtual = "." }
 dependencies = [
     { name = "pysworn-datasworn" },
     { name = "pysworn-reference" },
+    { name = "pysworn-renderables" },
     { name = "textual" },
+    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -1150,7 +1152,9 @@ dev = [
 requires-dist = [
     { name = "pysworn-datasworn", editable = "datasworn" },
     { name = "pysworn-reference", editable = "reference" },
+    { name = "pysworn-renderables", editable = "renderables" },
     { name = "textual", specifier = ">=6.5.0" },
+    { name = "typer", specifier = ">=0.20.0" },
 ]
 
 [package.metadata.requires-dev]

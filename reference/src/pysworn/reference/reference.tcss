@@ -66,8 +66,9 @@ RuleViewer {
   # max-width: 1fr;
   height: auto;
   width: 1fr;
-  border: round $primary;
-  # border-title-color: auto;
+  border: blank;
+  border-title-color: $secondary;
+  border-subtitle-color: $secondary;
   padding: 1 0 0 0;
   &:focus {
     background: $surface;
@@ -204,7 +205,12 @@ Atlas
 Delve: Site Themes 
 ***********************************************/
 .site-table {
-  border: round $secondary;
+  # border: round $secondary;
+  margin: 0 1 1 1;
+  &:focus {
+    # border: round $secondary;
+    background: $surface;
+  }
 }
 SiteThemeViewer {
   MarkdownH1 {
@@ -235,7 +241,7 @@ NpcVariantViewer {
 }
 TruthViewer {
   height: auto;
-  border: round $primary;
+  # border: round $primary;
   &:focus {
     border: round $primary;
     background: $panel;
