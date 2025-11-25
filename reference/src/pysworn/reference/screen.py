@@ -1,4 +1,3 @@
-
 from pysworn.datasworn import RULESETS, index, rules
 from pysworn.reference import (
     VIEWER_TYPES,
@@ -67,7 +66,7 @@ def compose_rule_viewer_tabs(category, collection) -> ComposeResult:
     with Horizontal():
         yield ReferenceTree(
             category.title(),
-            collection=collection,
+            # collection=collection,
             id=f"{category}-tree",
         )
         # yield VerticalScroll(
@@ -319,6 +318,7 @@ class ReferenceScreen(ModalScreen[str]):
         # Update reference tree
         try:
             tree = category_pane.query_one(f"#{category}-tree", ReferenceTree)
+            tree.collection = getattr(rules[ruleset], category)
             try:
                 if (node := tree.nodes[link]) != tree.cursor_node:
                     if node.is_collapsed:
@@ -379,13 +379,24 @@ class ReferenceScreen(ModalScreen[str]):
         if event.tab.id:
             ruleset = event.tab.id.split("-")[-1]
             self.post_message(self.Visit(ruleset))
+            # tree.collection = getattr(rules[ruleset], "oracles")
 
     @on(TabbedContent.TabActivated, ".rules-tabs")
     async def on_rules_tab_activated(self, event: TabbedContent.TabActivated) -> None:
         event.stop()
-        # if event.tab.id:
-        #     ruleset = event.tab.id.split("-")[0]
-        #     self.post_message(self.Visit(ruleset[1:]))
+        ruleset_id = event.tabbed_content.id
+        if not ruleset_id:
+            return
+        ruleset = ruleset_id.split("-")[0]
+        category = event.pane.id
+        if not category:
+            return
+        self.log(event, ruleset, category)
+        try:
+            tree = event.pane.query_one(f"#{category}-tree", ReferenceTree)
+            tree.collection = getattr(rules[ruleset], category)
+        except NoMatches:
+            pass
 
     @on(DataTable.RowSelected)
     async def on_row_selected(self, event):
