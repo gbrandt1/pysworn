@@ -1,8 +1,11 @@
+import re
+
 from pysworn.datasworn import rules
 from rich.traceback import install
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Static, Tab, Tabs
@@ -32,7 +35,7 @@ RULE_CATEGORIES = [
 ]
 
 
-class RuleTabs(Tabs, can_focus=True):
+class PySwornTabs(Tabs, can_focus=True):
     CSS = """
     Tooltip {
         height: 1;
@@ -41,12 +44,26 @@ class RuleTabs(Tabs, can_focus=True):
     }    
     """
     BINDINGS = [
+        Binding("l", "next_tab", "Next tab", show=False),
+        Binding("h", "previous_tab", "Previous tab", show=False),
         Binding("up,j", "app.focus_previous", "Focus previous"),
         Binding("down,k", "app.focus_next", "Focus next"),
     ]
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "jump_to":
+            tab_id = parameters[0]
+            try:
+                tab_to_check = self.query_one(f"#tabs-list > Tab#{tab_id}", Tab)
+            except NoMatches:
+                return False
+            if tab_to_check.disabled:
+                return None
+            return True
+        return True
 
-class RulesetTabs(RuleTabs):
+
+class RulesetTabs(PySwornTabs):
     CSS = """
     RulesetTabs {
         height: 2;
@@ -54,6 +71,7 @@ class RulesetTabs(RuleTabs):
     }
     """
     group = Binding.Group("Ruleset")
+    BINDING_GROUP_TITLE = "Ruleset"
     BINDINGS = [
         Binding("I", "jump_to('classic')", "Jump to Ironsworn", group=group),
         Binding("D", "jump_to('delve')", "Jump to Delve", group=group),
@@ -64,15 +82,15 @@ class RulesetTabs(RuleTabs):
         ),
     ]
 
-    def on_mount(self) -> None:
-        self.tooltip = "Select Ruleset"
-        for ruleset, title in RULESETS:
-            self.add_tab(Tab(title, id=ruleset))
-
     class RulesetChanged(Message):
         def __init__(self, ruleset: str) -> None:
             super().__init__()
             self.ruleset = ruleset
+
+    def on_mount(self) -> None:
+        self.tooltip = "Select Ruleset"
+        for ruleset, title in RULESETS:
+            self.add_tab(Tab(title, id=ruleset))
 
     def action_jump_to(self, ruleset: str) -> None:
         self.active = ruleset
@@ -84,8 +102,9 @@ class RulesetTabs(RuleTabs):
             self.post_message(self.RulesetChanged(event.tab.id))
 
 
-class RuleCategoryTabs(RuleTabs):
+class RuleCategoryTabs(PySwornTabs):
     group = Binding.Group("Category")
+    BINDING_GROUP_TITLE = "Category"
     BINDINGS = [
         Binding("O", "jump_to('oracles')", "Jump to Oracles", group=group),
         Binding("M", "jump_to('moves')", "Jump to Moves", group=group),
@@ -101,62 +120,33 @@ class RuleCategoryTabs(RuleTabs):
 
     ruleset: reactive[str] = reactive(RULESETS[0][0])
 
-    def compose(self) -> ComposeResult:
-        yield Tabs(*[Tab(title, id=category) for category, title in RULE_CATEGORIES])
-
-    def on_mount(self) -> None:
-        self.tooltip = "Select Rule Category"
-
-    def watch_ruleset(self, value: str) -> None:
-        for category, title in RULE_CATEGORIES:
-            if len(getattr(rules[self.ruleset], category, {})):
-                self.enable(category)
-            else:
-                self.disable(category)
-        self.active = "oracles"
-
-    def action_jump_to(self, category: str) -> None:
-        self.active = category
+    category: dict = {}
 
     class CategoryChanged(Message):
         def __init__(self, category: str) -> None:
             super().__init__()
             self.category = category
 
+    def compose(self) -> ComposeResult:
+        yield Tabs(*[Tab(title, id=category) for category, title in RULE_CATEGORIES])
 
-if __name__ == "__main__":
+    def on_mount(self) -> None:
+        self.tooltip = "Select Rule Category"
 
-    class RulesetTabsApp(App[None]):
-        CSS = """
-        RulesetTabs {
-            height: 2;
-        }
-        """
+    def watch_ruleset(self, old_ruleset: str, new_ruleset: str) -> None:
+        self.category[old_ruleset] = self.active
+        for category, title in RULE_CATEGORIES:
+            if len(getattr(rules[new_ruleset], category, {})):
+                self.enable(category)
+            else:
+                self.disable(category)
+        self.active = self.category.get(new_ruleset, "oracles")
 
-        def compose(self) -> ComposeResult:
-            from textual.widgets import Footer, Header
+    def action_jump_to(self, category: str) -> None:
+        self.active = category
 
-            yield Header()
-            yield RulesetTabs()
-            yield RuleCategoryTabs()
-            yield Static()
-            yield Footer()
-
-        @on(RulesetTabs.RulesetChanged)
-        def on_ruleset_changed(self, event: RulesetTabs.RulesetChanged) -> None:
-            from rich.pretty import Pretty
-
-            ruleset = event.ruleset
-            if ruleset:
-                self.query_one(RuleCategoryTabs).ruleset = ruleset
-
-            static = self.query_one(Static)
-            static.update(Pretty(event))
-
-        @on(RuleCategoryTabs.CategoryChanged)
-        def on_category_changed(self, event: RuleCategoryTabs.CategoryChanged) -> None:
-            static = self.query_one(Static)
-            static.update(Pretty(event))
-
-    app = RulesetTabsApp()
-    app.run()
+    @on(Tabs.TabActivated)
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        event.stop()
+        if event.tab.id:
+            self.post_message(self.CategoryChanged(event.tab.id))

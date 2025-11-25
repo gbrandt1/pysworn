@@ -1,3 +1,9 @@
+"""
+PySworn Themes
+
+The idea is to replicate the color scheme from the PySworn books.
+"""
+
 from textual.theme import Theme
 
 delve_theme = Theme(

@@ -163,10 +163,12 @@ def get_rule_types():
     return rule_types
 
 
-def breadcrumbs(id_: str):
+def breadcrumbs(id_: str) -> list[str]:
     parsed_id = ParsedId(id_)
     if not parsed_id.category:
-        return [parsed_id.ruleset]
+        if parsed_id.ruleset:
+            return [parsed_id.ruleset]
+        return [""]
     parts = []  # [parsed_id.ruleset, parsed_id.category]
     next_id = id_
     while next_id:
