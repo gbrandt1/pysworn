@@ -39,20 +39,21 @@ class RulesetTabsApp(App[None]):
         yield RulesetTabbedContent()
         yield Footer()
 
-    # def _update_viewer(self, id_):
-    #     ruleset_pane = self.query_one(RulesetTabbedContent).active_pane
-    #     ruleset = None
-    #     category = None
-    #     category_id = None
-    #     if ruleset_pane:
-    #         ruleset = ruleset_pane.id
-    #         category = ruleset_pane.query_one(CategoryTabbedContent).active_pane
-    #         if category:
-    #             category_id = category.id
+    def _update_viewer(self, id_):
+        ruleset_pane = self.query_one(RulesetTabbedContent).active_pane
+        ruleset = None
+        category = None
+        category_id = None
+        if ruleset_pane:
+            ruleset = ruleset_pane.id
+            category = ruleset_pane.query_one(CategoryTabbedContent).active_pane
+            if category:
+                category_id = category.id
 
-    #     self.query_one(Static).update(
-    #         Pretty(f"Selected: {ruleset} {category_id} {id_}")
-    #     )
+        self.query_one(Static).update(
+            Pretty(f"Selected: {ruleset} {category_id} {id_}")
+        )
+
     #     if not category:
     #         return
     #     if not id_:
@@ -84,32 +85,24 @@ class RulesetTabsApp(App[None]):
         for pane in panes:
             pane.display_tree = self.display_trees
 
-    # @on(RulesetTabbedContent.RulesetChanged)
-    # def on_ruleset_changed(self, event: RulesetTabbedContent.RulesetChanged) -> None:
-    #     event.stop()
-    #     self._update_viewer(event.ruleset)
+    @on(RulesetTabbedContent.RulesetChanged)
+    def on_ruleset_changed(self, event: RulesetTabbedContent.RulesetChanged) -> None:
+        event.stop()
+        self._update_viewer(event.ruleset)
 
-    # @on(CategoryTabbedContent.CategoryChanged)
-    # def on_category_changed(self, event: CategoryTabbedContent.CategoryChanged) -> None:
-    #     event.stop()
-    #     self._update_viewer(event.category)
+    @on(CategoryTabbedContent.CategoryChanged)
+    def on_category_changed(self, event: CategoryTabbedContent.CategoryChanged) -> None:
+        event.stop()
+        self._update_viewer(event.category)
+
+    @on(ReferenceTree.ReferenceHighlighted)
+    def on_node_selected(self, event: ReferenceTree.ReferenceHighlighted) -> None:
+        event.stop()
+        self._update_viewer(event.id_)
 
     def on_click(self, event: Click) -> None:
         event.stop()
-        # if getattr(event, "link", None):
         self.log(f"Link: {event.style.link}")
-        # self._update_viewer(event.widget.id)
-
-    # @on(ReferenceTree.ReferenceHighlighted)
-    # def on_node_selected(self, event: ReferenceTree.ReferenceHighlighted) -> None:
-    #     event.stop()
-    #     self._update_viewer(event.id_)
-
-    def on_tab_pane_focused(self, event) -> None:
-        # event.stop()
-        self.log(f"Focus TabPane {event}")
-        # category = ContentTab.sans_prefix(self.active)
-        # self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
 
 
 def main() -> None:
