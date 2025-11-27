@@ -1,6 +1,4 @@
 import random
-from re import M
-from turtle import st
 
 from pysworn.datasworn import index, rules
 from pysworn.datasworn._datasworn import (

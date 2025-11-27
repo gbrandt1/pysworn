@@ -144,6 +144,11 @@ class ReferenceTree(PySwornTree):
         #     for obj in collection.options:
         #         n = node.add_leaf(colorized_label(obj, True), data=obj.id.value)
 
+    @property
+    def nodes(self) -> dict[str, TreeNode]:
+        """Return a dict mapping node data (link) to TreeNode."""
+        return {node.data: node for node in self.walk_nodes() if node.data}
+
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
         self.post_message(self.ReferenceHighlighted(event.node.data))
         self.log(f"Node highlighted {event.node.data}")

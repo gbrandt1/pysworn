@@ -66,7 +66,7 @@ def compose_rule_viewer_tabs(category, collection) -> ComposeResult:
     with Horizontal():
         yield ReferenceTree(
             category.title(),
-            # collection=collection,
+            collection=collection,
             id=f"{category}-tree",
         )
         # yield VerticalScroll(
