@@ -282,7 +282,9 @@ class RarityRenderable:
             f"**{self.rarity.name.value}** "
             # f"[{asset.name.value}]({self.rarity.asset.value})"
             f"for {asset.name.value.upper()} "
-            f"(XP cost: {self.rarity.xp_cost})"
+            f"(XP cost: {self.rarity.xp_cost})\n\n"
+            f"---\n\n"
+            f"{self.rarity.description.value}\n\n"
         )
         return Markdown(msg)
 

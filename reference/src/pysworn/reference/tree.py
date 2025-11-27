@@ -1,20 +1,40 @@
+from dataclasses import dataclass
+from typing import Any
+
 from rich.text import Text
 from textual.binding import Binding
+from textual.events import Focus
+from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Tree
 from textual.widgets.tree import TreeNode
 
 
-def colorized_label(obj, leaf: bool):
+def colorized_label(obj, dim: bool):
     style = ""
     if hasattr(obj, "color") and obj.color:
         style = f"{obj.color.value}"
-    if leaf:
+    if dim:
         style = f"dim {style}"
-    return Text(str(obj.name.value), style=style)
+    if hasattr(obj, "canonical_name") and obj.canonical_name:
+        return Text(str(obj.canonical_name.value), style=style)
+    elif hasattr(obj, "name") and obj.name:
+        return Text(str(obj.name.value), style=style)
+    elif hasattr(obj, "label") and obj.label:
+        return Text(str(obj.label.value), style=style)
+    # elif hasattr(obj, "summary") and obj.summary:
+    #     return Text(str(obj.summary.value), style=style)
+    else:
+        return Text(str(obj.id.value), style=style)
 
 
 class PySwornTree(Tree):
+    DEFAULT_CSS = """
+    PySwornTree {
+       height: auto; 
+       width: auto;
+    }
+    """
     BINDINGS = [
         Binding("k", "cursor_up", "Cursor Up", show=False),
         Binding("j", "cursor_down", "Cursor Down", show=False),
@@ -22,7 +42,7 @@ class PySwornTree(Tree):
         Binding("J", "cursor_down_parent", "Cursor Down Parent", show=False),
         Binding("g", "scroll_home", "Cursor To Top", show=False),
         Binding("G", "scroll_end", "Cursor To Bottom", show=False),
-        Binding("enter,l,h", "select_cursor", "Select Cursor", show=False),
+        Binding("enter", "select_cursor", "Select Cursor", show=False),
         Binding("space,r", "toggle_node", "Toggle Expand", show=False),
         Binding("x", "toggle_expand_all()", "Toggle expand all", show=False),
     ]
@@ -63,20 +83,54 @@ class PySwornTree(Tree):
         self.log("Toggle expand all")
         self.root.toggle_all()
 
+    def _on_focus(self, event: Focus) -> None:
+        line = self.cursor_line
+        node = self.get_node_at_line(line)
+        if node:
+            self.post_message(Tree.NodeHighlighted(node))
+
 
 class ReferenceTree(PySwornTree):
-    collection: reactive[dict[str, object]] = reactive({})
+    # collection: reactive[dict[str, object]] = reactive({})
 
-    def watch_collection(self):
-        self.clear()
-        self.nodes = {}
-        self.log(f"collection {len(self.collection)}")
+    @dataclass
+    class ReferenceHighlighted(Message):
+        id_: str
+
+    # @dataclass
+    # class NodeSelected(Message):
+    #     id_: str
+
+    # def watch_collection(self):
+    #     self.clear()
+    #     self.nodes = {}
+    #     self.log(f"collection {len(self.collection)}")
+
+    def __init__(
+        self,
+        label: str | Text,
+        collection: dict[str, object],
+        data: Any | None = None,
+        *,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ) -> None:
+        super().__init__(
+            label, data, name=name, id=id, classes=classes, disabled=disabled
+        )
+
+        self.collection = collection
 
         for obj in self.collection.values():
+            # if hasattr(obj, "contents"):
             n = self.root.add(colorized_label(obj, False), data=obj.id.value)
             self._add_collection(n, obj)
+            # else:
+            # self.root.add_leaf(colorized_label(obj, False), data=obj.id.value)
 
-        self.log(self.tree)
+        # self.log(self.tree)
 
     def _add_collection(self, node: TreeNode, collection):
         if hasattr(collection, "contents") and collection.contents:
@@ -87,3 +141,11 @@ class ReferenceTree(PySwornTree):
             for obj in collection.collections.values():
                 n = node.add(colorized_label(obj, False), data=obj.id.value)
                 self._add_collection(n, obj)
+
+        # if hasattr(collection, "options"):
+        #     for obj in collection.options:
+        #         n = node.add_leaf(colorized_label(obj, True), data=obj.id.value)
+
+    def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        self.post_message(self.ReferenceHighlighted(event.node.data))
+        self.log(f"Node highlighted {event.node.data}")
