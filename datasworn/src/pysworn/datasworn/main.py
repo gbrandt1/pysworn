@@ -183,7 +183,7 @@ def breadcrumbs(id_: str) -> list[str]:
     parts.append(parsed_id.category)
     parts.append(parsed_id.ruleset)
     parts.reverse()
-    print(parts)
+    # print(parts)
     return parts
 
 

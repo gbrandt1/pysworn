@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,7 +51,6 @@ class PySwornTree(Tree):
     def on_mount(self) -> None:
         super().on_mount()
         self.show_root = False
-        # self.auto_expand = True
         self.guide_depth = 2
 
     def action_cursor_up(self) -> None:
@@ -89,22 +89,20 @@ class PySwornTree(Tree):
         if node:
             self.post_message(Tree.NodeHighlighted(node))
 
+    def walk_nodes(self) -> Generator[TreeNode, None, None]:
+        """Walk the nodes of the tree."""
+        for node in self._tree_nodes.values():
+            yield node
+
 
 class ReferenceTree(PySwornTree):
-    # collection: reactive[dict[str, object]] = reactive({})
-
     @dataclass
     class ReferenceHighlighted(Message):
-        id_: str
+        id_: str | None
 
-    # @dataclass
-    # class NodeSelected(Message):
-    #     id_: str
-
-    # def watch_collection(self):
-    #     self.clear()
-    #     self.nodes = {}
-    #     self.log(f"collection {len(self.collection)}")
+    @dataclass
+    class NodeSelected(Message):
+        id_: str | None
 
     def __init__(
         self,

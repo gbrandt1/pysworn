@@ -1,31 +1,46 @@
-import re
 from calendar import c
 from dataclasses import dataclass
-from operator import eq
-from tkinter import W
 
 from pysworn.datasworn import rules
 from pysworn.reference.tree import ReferenceTree
+from pysworn.renderables import get_renderable
 from rich.columns import Columns
 
 # from rich.pretty import Pretty
-from textual import on
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Horizontal
 from textual.content import Content
 from textual.css.query import NoMatches
-from textual.events import Focus
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Static, TabbedContent, TabPane, Tabs, Tree
+from textual.widgets import Static, TabbedContent, TabPane, Tabs
+from textual.widgets._content_switcher import ContentSwitcher
 from textual.widgets._tabbed_content import ContentTab
 
 __all__ = [
     "PySwornTabbedContent",
     "RulesetTabbedContent",
+    "CategoryTabPane",
     "CategoryTabbedContent",
 ]
+from re import sub
+
+
+def kebab(s):
+    return "-".join(
+        sub(
+            r"(\s|[_:/]|-)+",
+            " ",
+            sub(
+                r"[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+",
+                lambda mo: " " + mo.group(0).lower(),
+                s,
+            ),
+        ).split()
+    )
 
 
 class PySwornTabbedContent(TabbedContent):
@@ -98,6 +113,10 @@ class RulesetTabbedContent(PySwornTabbedContent):
     ruleset = reactive("classic")
 
     async def on_mount(self):
+        self.add_panes()
+
+    @work
+    async def add_panes(self):
         for ruleset, title in RulesetTabbedContent.RULESET_TITLES.items():
             with self.prevent(TabbedContent.TabActivated):
                 await self.add_pane(TabPane(title, id=ruleset))
@@ -123,8 +142,8 @@ class CategoryViewer(Widget):
     }
     """
 
-    def __init__(self, category: dict) -> None:
-        super().__init__()
+    def __init__(self, category: dict, id: str) -> None:
+        super().__init__(id=id)
         self.category = category
 
     def compose(self) -> ComposeResult:
@@ -152,10 +171,69 @@ class CategoryTabPane(TabPane):
     CategoryTabPane {
         layout: horizontal;
     }
-    # Static {
-    #     height: 80%;
-    # }
+    Static {
+        padding: 1 2;
+    }
     """
+
+    display_tree = reactive(True)
+
+    def __init__(
+        self,
+        ruleset: str,
+        category: str,
+        title: Content | str,
+        *children: Widget,
+        name: str | None = None,
+        id: str | None = None,
+        classes: str | None = None,
+        disabled: bool = False,
+    ):
+        self.ruleset = ruleset
+        self.category = category
+        self.collection = getattr(rules[self.ruleset], category, {})
+        super().__init__(
+            title, *children, name=name, id=id, classes=classes, disabled=disabled
+        )
+
+    def compose(self) -> ComposeResult:
+        if not self.collection:
+            return
+        with Horizontal():
+            yield ReferenceTree(self.category, self.collection)
+            with ContentSwitcher():
+                yield CategoryViewer(self.collection, id=self.category)
+
+    async def watch_display_tree(self, value):
+        try:
+            tree = self.query_one(ReferenceTree)
+            category = self.query_one(CategoryViewer)
+            tree.display = value
+            category.display = not value
+            self.log(tree.display, category.display)
+        except NoMatches:
+            pass
+
+    async def on_mount(self):
+        self.display_tree = True
+
+    async def on_reference_tree_reference_highlighted(self, event):
+        content = self.query_one(ContentSwitcher)
+        if not event.id_:
+            content.current = self.category
+            return
+        content_id = kebab(event.id_)
+
+        try:
+            content.current = content_id
+        except NoMatches:
+            self.log(f"Adding {content_id}")
+            await content.add_content(
+                Static(get_renderable(event.id_)),
+                id=content_id,
+                set_current=True,
+            )
+            self.query_one(f"#{content_id}", Static).display = True
 
 
 class CategoryTabbedContent(PySwornTabbedContent):
@@ -196,19 +274,21 @@ class CategoryTabbedContent(PySwornTabbedContent):
         self.ruleset = ruleset
 
     async def on_mount(self):
+        self.loading = True
+        self.add_panes()
+
+    @work
+    async def add_panes(self):
         for category, title in CategoryTabbedContent.RULE_CATEGORY_TITLES.items():
             with self.prevent(TabbedContent.TabActivated):
-                await self.add_pane(CategoryTabPane(title, id=category))
-            collection = getattr(rules[self.ruleset], category, {})
-            if len(collection):
-                self.enable_tab(category)
-                pane = self.get_pane(category)
-                with self.prevent(Tree.NodeHighlighted):
-                    await pane.mount(ReferenceTree(category, collection))
-                await pane.mount(CategoryViewer(collection))
-                pane.query_one(CategoryViewer).display = False
-            else:
-                self.disable_tab(category)
+                await self.add_pane(
+                    CategoryTabPane(self.ruleset, category, title, id=category)
+                )
+                try:
+                    self.get_pane(category).query_one(ReferenceTree)
+                except NoMatches:
+                    self.disable_tab(category)
+        self.loading = False
         self.log(self.tree)
 
     def on_tabbed_content_tab_activated(
@@ -219,12 +299,7 @@ class CategoryTabbedContent(PySwornTabbedContent):
             category = ContentTab.sans_prefix(event.tab.id)
             self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
 
-    # @on(Focus)
     def on_tab_pane_focused(self, event) -> None:
         self.log(f"Focus {self.active} {event}")
-        # return super()._on_focus(event)
-        # event.stop()
-
         category = ContentTab.sans_prefix(self.active)
         self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
-        # super()._on_focus(event)

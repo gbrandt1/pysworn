@@ -21,6 +21,19 @@ from pysworn.renderables.renderables import (
     TruthRenderable,
 )
 
+
+def get_renderable(id_: str):
+    from pysworn.datasworn import index
+    from rich.pretty import Pretty
+
+    obj = index[id_]
+    rule_type = id_.split(":")[0]
+    renderable = RENDERABLES.get(rule_type)
+    if not renderable:
+        return Pretty(obj, max_depth=2, expand_all=True)
+    return renderable(obj)
+
+
 RENDERABLES = {
     "asset": AssetRenderable,
     "asset.ability": AssetAbilityRenderable,
@@ -60,3 +73,8 @@ RENDERABLES = {
     "truth.option.oracle_rollable.row": OracleRollableRowRenderable,
     "rules": RulesRenderable,
 }
+
+__all__ = [
+    "get_renderable",
+    "RENDERABLES",
+]
