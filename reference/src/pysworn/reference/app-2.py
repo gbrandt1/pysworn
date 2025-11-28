@@ -10,7 +10,6 @@ from rich.traceback import install
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
 from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import Static
