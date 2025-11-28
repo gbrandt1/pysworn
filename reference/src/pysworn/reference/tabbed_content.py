@@ -1,7 +1,8 @@
-from calendar import c
 from dataclasses import dataclass
+from re import sub
 
-from pysworn.datasworn import rules
+from pysworn.datasworn import index, rules
+from pysworn.reference.options import TagOptionLists
 from pysworn.reference.tree import ReferenceTree
 from pysworn.renderables import get_renderable
 from rich.columns import Columns
@@ -10,7 +11,7 @@ from rich.columns import Columns
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal
+from textual.containers import Horizontal, VerticalScroll
 from textual.content import Content
 from textual.css.query import NoMatches
 from textual.message import Message
@@ -26,7 +27,6 @@ __all__ = [
     "CategoryTabPane",
     "CategoryTabbedContent",
 ]
-from re import sub
 
 
 def kebab(s):
@@ -66,9 +66,6 @@ class PySwornTabbedContent(TabbedContent):
     def action_jump_to(self, tab: str) -> None:
         self.active = tab
 
-    # def _on_focus(self, event: Focus) -> None:
-    #     self.log(f"PySwornTabbedContent Focus {event}")
-
     def action_next_tab(self) -> None:
         tabs = self.query_one(Tabs)
         if tabs.has_focus:
@@ -81,11 +78,6 @@ class PySwornTabbedContent(TabbedContent):
 
 
 class RulesetTabbedContent(PySwornTabbedContent):
-    DEFAULT_CSS = """
-    CategoryTabbedContent {
-        padding: 0 2;
-    }
-    """
     group = Binding.Group("Ruleset")
     BINDING_GROUP_TITLE = "Ruleset"
     BINDINGS = [
@@ -121,6 +113,10 @@ class RulesetTabbedContent(PySwornTabbedContent):
             with self.prevent(TabbedContent.TabActivated):
                 await self.add_pane(TabPane(title, id=ruleset))
             pane = self.get_pane(ruleset)
+            if hasattr(index[ruleset], "rules") and index[ruleset].rules:
+                # if index[self.ruleset].rules.tags:
+                options = TagOptionLists(ruleset)
+                pane.mount(options)
             categories = CategoryTabbedContent(ruleset)
             pane.mount(categories)
 
@@ -134,11 +130,12 @@ class RulesetTabbedContent(PySwornTabbedContent):
 
 
 class CategoryViewer(Widget):
+    can_focus = True
     DEFAULT_CSS = """
     CategoryViewer {
-        width: 1fr;
+        width: auto;
         height: auto;
-        border: round white;
+        # border: round white;
     }
     """
 
@@ -174,6 +171,16 @@ class CategoryTabPane(TabPane):
     Static {
         padding: 1 2;
     }
+    #category-viewer {
+        height: 1fr;
+    }
+    #tree {
+        height: 1fr;
+        width: auto;
+    }
+    #content {        
+        width: 1fr;
+    }
     """
 
     display_tree = reactive(True)
@@ -199,10 +206,12 @@ class CategoryTabPane(TabPane):
     def compose(self) -> ComposeResult:
         if not self.collection:
             return
-        with Horizontal():
-            yield ReferenceTree(self.category, self.collection)
-            with ContentSwitcher():
-                yield CategoryViewer(self.collection, id=self.category)
+        with Horizontal(id="category-viewer"):
+            with VerticalScroll(id="tree"):
+                yield ReferenceTree(self.category, self.collection)
+            with VerticalScroll():
+                with ContentSwitcher(id="content"):
+                    yield CategoryViewer(self.collection, id=self.category)
 
     async def watch_display_tree(self, value):
         try:
@@ -210,7 +219,6 @@ class CategoryTabPane(TabPane):
             category = self.query_one(CategoryViewer)
             tree.display = value
             category.display = not value
-            self.log(tree.display, category.display)
         except NoMatches:
             pass
 
@@ -227,7 +235,6 @@ class CategoryTabPane(TabPane):
         try:
             content.current = content_id
         except NoMatches:
-            self.log(f"Adding {content_id}")
             await content.add_content(
                 Static(get_renderable(event.id_)),
                 id=content_id,
@@ -289,7 +296,6 @@ class CategoryTabbedContent(PySwornTabbedContent):
                 except NoMatches:
                     self.disable_tab(category)
         self.loading = False
-        self.log(self.tree)
 
     def on_tabbed_content_tab_activated(
         self, event: TabbedContent.TabActivated
@@ -300,6 +306,5 @@ class CategoryTabbedContent(PySwornTabbedContent):
             self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
 
     def on_tab_pane_focused(self, event) -> None:
-        self.log(f"Focus {self.active} {event}")
         category = ContentTab.sans_prefix(self.active)
         self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))

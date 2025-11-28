@@ -47,6 +47,8 @@ class PyswornCommands(Provider):
                 )
 
     async def discover(self) -> Hits:
+        app = self.app
+        assert isinstance(app, ProviderApp)
         for cmd, link in self.links:
             yield DiscoveryHit(
                 f"{cmd}",

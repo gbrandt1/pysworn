@@ -3,8 +3,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import fields, is_dataclass
 from datetime import datetime
-
-# from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -20,13 +18,6 @@ from ._datasworn import *  # noqa
 install()
 
 console = Console()
-# console = Console(file=StringIO(), force_terminal=True)
-
-
-# FORMAT = "%(message)s"
-# logging.basicConfig(
-#     level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-# )
 log = logging.getLogger(__name__)
 
 
@@ -47,30 +38,88 @@ RULESETS = [
     "sundered_isles",
 ]
 
+TYPE_TITLES = {
+    "asset": "Assets",
+    "asset.ability": "Assets Abilities",
+    "asset.ability.move": "Assets Ability Moves",
+    "asset.ability.oracle_rollable": "Assets Ability Oracles",
+    "asset.ability.oracle_rollable.row": "Assets Ability Oracle Rows",
+    "asset_collection": "Assets",
+    "atlas_collection": "Atlas",
+    "atlas_entry": "Atlas",
+    "classic": "Ironsworn",
+    "delve": "Delve",
+    "delve_site": "Sites",
+    "delve_site.denizen": "Site Denizens",
+    "delve_site_domain": "Domains",
+    "delve_site_domain.danger": "Domain Dangers",
+    "delve_site_domain.feature": "Domain Features",
+    "delve_site_theme": "Themes",
+    "delve_site_theme.danger": "Theme Dangers",
+    "delve_site_theme.feature": "Theme Features",
+    "move": "Moves",
+    "move.oracle_rollable": "Move Oracles",
+    "move.oracle_rollable.row": "Move Oracle Rows",
+    "move_category": "Moves",
+    "npc": "NPCs",
+    "npc.variant": "NPC Variants",
+    "npc_collection": "NPCs",
+    "oracle_collection": "Oracles",
+    "oracle_rollable": "Oracles",
+    "oracle_rollable.row": "Oracle Rows",
+    "rarity": "Rarities",
+    "starforged": "Starforged",
+    "starsmith": "Starsmith",
+    "sundered_isles": "Sundered Isles",
+    "truth": "Truths",
+    "truth.option": "Truth Options",
+    "truth.option.oracle_rollable": "Truth Option Oracles",
+    "truth.option.oracle_rollable.row": "Truth Option Oracle Rows",
+    "rules": "Rules",
+    "source": "Source",
+}
+
+
 index: dict[str, Any] = {}
 id_tree: dict[str, dict] = {}
 rules: dict[str, _datasworn.RulesPackage] = {}
 
 
 class ParsedId:
-    def __init__(self, id_: str):
-        self.rule_type = None
-        self.ruleset = None
-        self.category = None
+    ruleset: str
+
+    def __init__(self, id_: str) -> None:
+        self.id: str = id_
+        self.type: str = "ruleset"
+
+        self.category: str | None = None
+        self.subcategory: str | None = None
         if ":" in id_:
-            self.rule_type, path = id_.split(":")
-            self.ruleset, self.category, *_ = path.split("/")
+            self.type, path = id_.split(":")
+            if len(pp := path.split("/")) < 3:
+                self.ruleset, self.category = pp
+            else:
+                self.ruleset, self.category, self.subcategory, *_ = pp
         elif id_ in RULESETS:
             self.ruleset = id_
-            self.rule_type = "source"
+            self.type = "source"
+
+        if self.category:
+            self.category = self.category.split(".")[0]
+
+        if self.subcategory:
+            self.subcategory = self.subcategory.split(".")[0]
         else:
             pass
 
-    # def __str__(self):
-    #     return f"{self.rule_type}:{self.ruleset}/{self.category}"
-
     def __repr__(self):
-        return f"<ParsedId {self.rule_type}:{self.ruleset}/{self.category}>"
+        return f"<ParsedId {self.type}:{self.ruleset}/{self.category}>"
+
+    def __rich__(self):
+        return (
+            f"'{self.id}' --> {' > '.join(breadcrumbs(self.id))} "
+            # f"<{self.type=} {self.ruleset=} {self.category=} {self.subcategory=}>"
+        )
 
 
 def add_to_index(ids, index, obj):
@@ -163,25 +212,38 @@ def get_rule_types():
     return rule_types
 
 
-def breadcrumbs(id_: str) -> list[str]:
-    parsed_id = ParsedId(id_)
-    if not parsed_id.category:
-        if parsed_id.ruleset:
-            return [parsed_id.ruleset]
-        return [""]
-    parts = []  # [parsed_id.ruleset, parsed_id.category]
-    next_id = id_
-    while next_id:
-        obj = index[next_id]
+def breadcrumbs(id_) -> list[str]:
+    def _get_name_or_label(id_):
+        obj = index[id_]
         if hasattr(obj, "name") and obj.name:
-            parts.append(obj.name.value)
+            return obj.name.value
         elif hasattr(obj, "label") and obj.label:
-            parts.append(obj.name.value)
+            return obj.label.value
+        elif "." in id_:
+            return id_.split(".")[-1]
+        else:
+            return id_
+
+    parts = []
+    next_id = id_
+    if name := _get_name_or_label(next_id):
+        parts.append(f"**{name.upper()}**")
+    next_id = get_parent_id(next_id)
+    while next_id:
+        if next_id in RULESETS:
+            break
+        if name := _get_name_or_label(next_id):
+            parts.append(f"[{name}]({next_id})")
         else:
             break
         next_id = get_parent_id(next_id)
-    parts.append(parsed_id.category)
-    parts.append(parsed_id.ruleset)
+
+    parsed_id = ParsedId(id_)
+
+    parts.append(
+        f"[{TYPE_TITLES[parsed_id.type]}]({parsed_id.ruleset}.{parsed_id.type})"
+    )
+    parts.append(f"[{TYPE_TITLES[parsed_id.ruleset]}]({parsed_id.ruleset})")
     parts.reverse()
     # print(parts)
     return parts

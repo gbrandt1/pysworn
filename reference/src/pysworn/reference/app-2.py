@@ -1,19 +1,16 @@
 from collections import namedtuple
 
-from pysworn.datasworn import index, rules
-from pysworn.reference.tabs import (
+from pysworn.reference.tabbed_content import (
     CategoryTabbedContent,
-    CategoryTabPane,
-    CategoryViewer,
     RulesetTabbedContent,
 )
 from pysworn.reference.tree import ReferenceTree
-from pysworn.renderables import RENDERABLES
 from rich.pretty import Pretty
 from rich.traceback import install
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Vertical
 from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import Static
@@ -25,6 +22,12 @@ RulesetTuple = namedtuple("RulesetTuple", "name title")
 
 
 class RulesetTabsApp(App[None]):
+    DEFAULT_CSS = """
+    RulesetTabbedContent {
+        height: 1fr;
+        width: 1fr;
+    }
+    """
     BINDINGS = [
         Binding("t", "toggle_tree", "Toggle Tree"),
     ]
@@ -35,8 +38,8 @@ class RulesetTabsApp(App[None]):
         from textual.widgets import Footer, Header
 
         yield Header()
-        yield Static()
         yield RulesetTabbedContent()
+        yield Static()
         yield Footer()
 
     def _update_viewer(self, id_):
@@ -53,29 +56,6 @@ class RulesetTabsApp(App[None]):
         self.query_one(Static).update(
             Pretty(f"Selected: {ruleset} {category_id} {id_}")
         )
-
-    #     if not category:
-    #         return
-    #     if not id_:
-    #         return
-
-    #     if ":" in id_:
-    #         static = category.query_one(Static)
-    #         obj = index[id_]
-    #         rule_type = id_.split(":")[0]
-    #         renderable = RENDERABLES.get(rule_type)
-    #         if not renderable:
-    #             static.update(Pretty(obj, max_depth=2, expand_all=True))
-    #             return
-    #         static.update(renderable(obj))
-    #     elif "." in id_:
-    #         # category = getattr(rules[ruleset], category_id)
-    #         viewer = category.query_one(CategoryViewer)
-    #         viewer.update()
-    #     else:
-    #         obj = index[id_]
-    #         static = category.query_one(Static)
-    #         static.update(Pretty(obj, max_depth=2, expand_all=True))
 
     def action_toggle_tree(self):
         # show either navigation tree or category viewer
@@ -102,7 +82,15 @@ class RulesetTabsApp(App[None]):
 
     def on_click(self, event: Click) -> None:
         event.stop()
-        self.log(f"Link: {event.style.link}")
+        link = event.style.link
+        if not link:
+            return
+        # if isinstance(link, O):
+        # self.log(f"Link: {link}")
+        # self.query_one(Static).update(Pretty(f"Link: {link.__class__.__mro__}"))
+        # else:
+        # self.log(f"Link: {link.value}")
+        self.query_one(Static).update(Pretty(f"Link: {link}"))
 
 
 def main() -> None:

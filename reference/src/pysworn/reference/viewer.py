@@ -18,7 +18,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, ItemGrid, Vertical, VerticalScroll
 from textual.message import Message
-from textual.widgets import DataTable, Label, Markdown, Pretty, Static, Switch
+from textual.widgets import DataTable, Label, Markdown, Static, Switch
 
 from ._rich import markdown, markup
 from .oracle_table import OracleTable

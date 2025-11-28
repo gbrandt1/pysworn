@@ -1,5 +1,3 @@
-from functools import partial
-
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -67,18 +65,18 @@ class History(Widget):
         if delete_it:
             self.post_message(self.Delete(history_id))
 
-    def action_delete(self) -> None:
-        """Delete the highlighted item from history."""
-        history = self.query_one(OptionList)
-        if (item := history.highlighted) is not None:
-            assert isinstance(entry := history.get_option_at_index(item), Entry)
-            self.app.push_screen(
-                YesNoDialog(
-                    "Delete history entry?",
-                    "Are you sure you want to delete the history entry?",
-                ),
-                partial(self.delete_history, entry.history_id),
-            )
+    # def action_delete(self) -> None:
+    #     """Delete the highlighted item from history."""
+    #     history = self.query_one(OptionList)
+    #     if (item := history.highlighted) is not None:
+    #         assert isinstance(entry := history.get_option_at_index(item), Entry)
+    # self.app.push_screen(
+    #     YesNoDialog(
+    #         "Delete history entry?",
+    #         "Are you sure you want to delete the history entry?",
+    #     ),
+    #     partial(self.delete_history, entry.history_id),
+    # )
 
     class Clear(Message):
         """Message that requests that the history be cleared."""
@@ -87,12 +85,12 @@ class History(Widget):
         if clear_it:
             self.post_message(self.Clear())
 
-    def action_clear(self) -> None:
-        """Clear out the whole history."""
-        self.app.push_screen(
-            YesNoDialog(
-                "Clear history?",
-                "Are you sure you want to clear everything out of history?",
-            ),
-            self.clear_history,
-        )
+    # def action_clear(self) -> None:
+    #     """Clear out the whole history."""
+    #     self.app.push_screen(
+    #         YesNoDialog(
+    #             "Clear history?",
+    #             "Are you sure you want to clear everything out of history?",
+    #         ),
+    #         self.clear_history,
+    #     )

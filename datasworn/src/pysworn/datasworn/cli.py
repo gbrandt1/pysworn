@@ -5,7 +5,6 @@ from collections import Counter, defaultdict
 from typing import Annotated
 
 import typer
-from pysworn.reference import rules
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
@@ -14,7 +13,7 @@ from rich.table import Table
 from rich.traceback import install
 
 from ._inspect import Inspect
-from .main import RULESETS, ParsedId, breadcrumbs, index
+from .main import RULESETS, ParsedId, breadcrumbs, index, rules
 
 install()
 
@@ -52,13 +51,13 @@ def count(
             ruleset = sk[1].split("/")[0]
         counts_by_ruleset[ruleset].append(sk[0])
 
-    table = Table("ID Prefix", "Total", *RULESETS)
+    table = Table("Type", "Total", *RULESETS)
     for t in Counter(counts).most_common():
         k = t[0]
         v = t[1]
         table.add_row(
             k,
-            repr(v),
+            f"[bold]{repr(v)}[/bold]",
             *[repr(counts_by_ruleset[ruleset].count(k)) for ruleset in RULESETS],
         )
     print(table)
@@ -66,8 +65,10 @@ def count(
 
 @app.command()
 def types():
+    """List rule types."""
+    from .main import get_rule_types
+
     rule_types = get_rule_types()
-    # pprint(rule_types, expand_all=True)
     for r in sorted(rule_types):
         print(r)
 
@@ -75,9 +76,11 @@ def types():
 @app.command()
 def ids(
     skip_rows: Annotated[bool, typer.Option("--skip-rows", "-r")] = False,
-    parents: Annotated[bool, typer.Option("--parents", "-p")] = False,
+    parse: Annotated[bool, typer.Option("--parse", "-p")] = False,
     tree: Annotated[bool, typer.Option("--tree", "-t")] = False,
 ):
+    from .main import id_tree
+
     if tree:
         print(id_tree)
         return
@@ -85,12 +88,10 @@ def ids(
     for k in index.keys():
         if skip_rows and ".row:" in k:
             continue
-        # if not parents:
-        #     print(k)
-        # else:
-        #     print(f"{k} --> {get_parent_id(k)}")
-
-        print(f"{ParsedId(k)}")
+        if parse:
+            print(ParsedId(k))
+            continue
+        print(k)
 
 
 @app.command()

@@ -38,20 +38,28 @@ class CollectionRenderable:
 
         msg += (
             "Oracles: "
-            + ", ".join([v.name.value for v in self.collection.contents.values()])
+            + ", ".join(
+                [
+                    f"[{v.name.value}]({v.id.value})"
+                    for v in self.collection.contents.values()
+                ]
+            )
             + "\n\n"
         )
         collections = []
         if hasattr(self.collection, "collections") and self.collection.collections:
             for collection in self.collection.collections.values():
                 collections.append(CollectionRenderable(collection))
-        #     msg += "### Collections\n\n" + ", ".join(
-        #         [v.name.value for v in self.collection.collections.values()]
-        #     )
         if len(collections) == 0:
             return Markdown(msg)
         else:
-            return Group(Markdown(msg), Panel(Group(*collections)))
+            return Group(
+                Markdown(msg),
+                Panel(
+                    Group(*collections),
+                    border_style="dim",
+                ),
+            )
 
 
 class AtlasEntryRenderable:
@@ -95,7 +103,7 @@ class DelveSiteRenderable:
         self.delve_site = delve_site
 
     def __rich__(self):
-        msg = f"{self.delve_site.name.value}\n\n"
+        msg = f"{self.delve_site.category.value.upper()} \n{self.delve_site.name.value.upper()}\n"
         theme = index[self.delve_site.theme.value].name.value
         domain = index[self.delve_site.domain.value].name.value
         region = index[self.delve_site.region.value].name.value
@@ -133,7 +141,7 @@ class DelveSiteThemeRenderable:
         self.theme = theme
 
     def __rich__(self):
-        msg = f"# {self.theme.name.value}\n\n"
+        msg = f"{self.theme.category.value.upper()} \n{self.theme.name.value.upper()}\n"
         dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
         for danger in self.theme.dangers:
             dangers.append(DelveSiteFeatureRenderable(danger))
@@ -148,7 +156,9 @@ class DelveSiteDomainRenderable:
         self.domain = domain
 
     def __rich__(self):
-        msg = f"# {self.domain.name.value}\n\n"
+        msg = (
+            f"{self.domain.category.value.upper()} \n{self.domain.name.value.upper()}\n"
+        )
         dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
         for danger in self.domain.dangers:
             dangers.append(DelveSiteFeatureRenderable(danger))
@@ -173,7 +183,10 @@ class MoveRenderable:
         self.move = move
 
     def __rich__(self):
-        msg = f"{self.move.name.value.upper()}\n\n{self.move.text.value}\n\n"
+        msg = (
+            # f"{self.move.category.value.upper()}\n"
+            f"{self.move.name.value.upper()}\n\n{self.move.text.value}"
+        )
         return Markdown(msg)
 
 
@@ -186,7 +199,7 @@ class NpcRenderable:
         variants = [NpcVariantRenderable(self.npc)]
         for variant in self.npc.variants.values():
             variants.append(NpcVariantRenderable(variant))
-        return Group(msg, *variants)
+        return Group(Markdown(msg), *variants)
 
 
 class NpcVariantRenderable:
@@ -319,6 +332,7 @@ class TruthRenderable:
         options = []
         for option in self.truth.options:
             options.append(TruthOptionRenderable(option))
+            options.append(Rule(style="dim white"))
         return Group(Markdown(name), *options, Markdown(your_character))
 
 

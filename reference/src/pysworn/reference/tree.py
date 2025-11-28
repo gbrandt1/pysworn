@@ -6,7 +6,6 @@ from rich.text import Text
 from textual.binding import Binding
 from textual.events import Focus
 from textual.message import Message
-from textual.reactive import reactive
 from textual.widgets import Tree
 from textual.widgets.tree import TreeNode
 
@@ -150,5 +149,5 @@ class ReferenceTree(PySwornTree):
         return {node.data: node for node in self.walk_nodes() if node.data}
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        self.scroll_to_line(self.cursor_line)
         self.post_message(self.ReferenceHighlighted(event.node.data))
-        self.log(f"Node highlighted {event.node.data}")
