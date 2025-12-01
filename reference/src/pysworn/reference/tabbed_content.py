@@ -88,6 +88,7 @@ class RulesetTabbedContent(PySwornTabbedContent):
         Binding(
             "U", "jump_to('sundered_isles')", "Jump to Sundered Isles", group=group
         ),
+        Binding("f", "toggle_filter", "Toggle Tag Filter"),
     ]
 
     RULESET_TITLES = {
@@ -113,12 +114,12 @@ class RulesetTabbedContent(PySwornTabbedContent):
             with self.prevent(TabbedContent.TabActivated):
                 await self.add_pane(TabPane(title, id=ruleset))
             pane = self.get_pane(ruleset)
+            categories = CategoryTabbedContent(ruleset)
+            pane.mount(categories)
             if hasattr(index[ruleset], "rules") and index[ruleset].rules:
                 # if index[self.ruleset].rules.tags:
                 options = TagOptionLists(ruleset)
                 pane.mount(options)
-            categories = CategoryTabbedContent(ruleset)
-            pane.mount(categories)
 
     def on_tabbed_content_tab_activated(
         self, event: TabbedContent.TabActivated
@@ -127,6 +128,10 @@ class RulesetTabbedContent(PySwornTabbedContent):
         if event.tab.id:
             tab_id = ContentTab.sans_prefix(event.tab.id)
             self.post_message(self.RulesetChanged(tab_id))
+
+    def action_toggle_filter(self) -> None:
+        tag_options = self.query_one(TagOptionLists)
+        tag_options.display = not tag_options.display
 
 
 class CategoryViewer(Widget):

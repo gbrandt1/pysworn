@@ -39,13 +39,13 @@ def main(
             print(f"[i dim]{link}[/] --> {renderable} {type(index[link]).__name__}")
         if renderable:
             print(
-                Panel(
-                    renderable(index[link]),
-                    title=f"[dim]{prefix.upper()}",
-                    title_align="left",
-                    border_style="dim",
-                    # width=80,
-                )
+                # Panel(
+                renderable(index[link]),
+                # title=f"[dim]{prefix.upper()}",
+                # title_align="left",
+                # border_style="dim",
+                # width=80,
+                # )
             )
             # print(renderable(index[link]))
 

@@ -78,12 +78,16 @@ class AssetAbilityRenderable:
         self.ability = ability
 
     def __rich__(self):
-        msg = "⬤ " if self.ability.enabled else "◯ "
-        msg += f"{self.ability.text.value}\n\n"
+        from rich.table import Table
+
+        t = Table.grid(padding=(0, 1), pad_edge=False)
+        t.add_row(
+            "⬤" if self.ability.enabled else "◯", Markdown(f"{self.ability.text.value}")
+        )
         moves = []
         # for move in self.ability.moves:
         #     moves.append(MoveRenderable(move))
-        return Group(Markdown(msg), *moves)
+        return Group(t, *moves)
 
 
 class AssetRenderable:
@@ -91,11 +95,13 @@ class AssetRenderable:
         self.asset = asset
 
     def __rich__(self):
-        msg = f"{self.asset.category.value.upper()} \n{self.asset.name.value.upper()}\n"
+        msg = " > ".join(breadcrumbs(self.asset.id.value))
+        # msg = f"{self.asset.category.value.upper()} \n{self.asset.name.value.upper()}"
         abilities = []
         for ability in self.asset.abilities:
+            abilities.append("\n")
             abilities.append(AssetAbilityRenderable(ability))
-        return Group(Text(msg), *abilities)
+        return Group(Markdown(msg), *abilities)
 
 
 class DelveSiteRenderable:
@@ -190,25 +196,13 @@ class MoveRenderable:
         return Markdown(msg)
 
 
-class NpcRenderable:
-    def __init__(self, npc):
-        self.npc = npc
-
-    def __rich__(self):
-        msg = " > ".join(breadcrumbs(self.npc.id.value))
-        variants = [NpcVariantRenderable(self.npc)]
-        for variant in self.npc.variants.values():
-            variants.append(NpcVariantRenderable(variant))
-        return Group(Markdown(msg), *variants)
-
-
 class NpcVariantRenderable:
     def __init__(self, npc):
         self.npc = npc
 
     def __rich__(self):
         msg = (
-            f"## {self.npc.name.value}\n\n"
+            f"**{self.npc.name.value}** "
             f"{self.npc.nature.value.value} Rank {self.npc.rank.value}\n\n"
         )
         for attr in ("drives", "features", "tactics"):
@@ -224,7 +218,18 @@ class NpcVariantRenderable:
             msg += f"> *{self.npc.quest_starter.value}*\n\n"
 
         return Markdown(msg)
-        # return Pretty(self.npc)
+
+
+class NpcRenderable:
+    def __init__(self, npc):
+        self.npc = npc
+
+    def __rich__(self):
+        msg = " > ".join(breadcrumbs(self.npc.id.value))
+        variants = [NpcVariantRenderable(self.npc)]
+        for variant in self.npc.variants.values():
+            variants.append(NpcVariantRenderable(variant))
+        return Group(Markdown(msg), *variants)
 
 
 class NpcCollectionRenderable:

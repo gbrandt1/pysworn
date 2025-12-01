@@ -1,15 +1,22 @@
+import logging
 from collections import namedtuple
+from pathlib import PurePath
+from tkinter import N
+from typing import Type
 
+import typer
 from pysworn.reference.tabbed_content import (
     CategoryTabbedContent,
     RulesetTabbedContent,
 )
 from pysworn.reference.tree import ReferenceTree
+from pysworn.renderables import get_renderable
 from rich.pretty import Pretty
 from rich.traceback import install
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.driver import Driver
 from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import Static
@@ -19,19 +26,64 @@ install()
 
 RulesetTuple = namedtuple("RulesetTuple", "name title")
 
+typer_app = typer.Typer(help="Run the Reference App")
+
+logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+
 
 class RulesetTabsApp(App[None]):
     DEFAULT_CSS = """
     RulesetTabbedContent {
         height: 1fr;
         width: 1fr;
+        &:inline {
+            height: 10;
+        }
+    }
+    Screen {        
+        &:inline {
+            border: none;
+            height: 50vh;
+            Header {
+                display: none;
+            }
+            Footer {
+                display: none;
+            }
+        }
     }
     """
+    INLINE_PADDING = 0
     BINDINGS = [
         Binding("t", "toggle_tree", "Toggle Tree"),
     ]
 
     display_trees = reactive(True)
+    current_id: reactive[str | None] = reactive(None)
+    debug: reactive[bool] = reactive(False)
+
+    def __init__(
+        self,
+        driver_class: type[Driver] | None = None,
+        css_path: str | PurePath | list[str | PurePath] | None = None,
+        watch_css: bool = False,
+        ansi_color: bool = False,
+    ):
+        super().__init__(driver_class, css_path, watch_css, ansi_color)
+        from rich.theme import Theme
+
+        self.console.push_theme(
+            Theme(
+                {
+                    "markdown.item.bullet": "white",
+                    "markdown.item.number": "white",
+                    "markdown.hr": "white",
+                    "markdown.link": "bold white",
+                    "markdown.link_url": "underline bold white",
+                    "markdown.block_quote": "italic",
+                }
+            )
+        )
 
     def compose(self) -> ComposeResult:
         from textual.widgets import Footer, Header
@@ -56,13 +108,7 @@ class RulesetTabsApp(App[None]):
             Pretty(f"Selected: {ruleset} {category_id} {id_}")
         )
 
-    def action_toggle_tree(self):
-        # show either navigation tree or category viewer
-        self.display_trees = not self.display_trees
-        panes = self.query("CategoryTabPane")
-
-        for pane in panes:
-            pane.display_tree = self.display_trees
+        self.current_id = id_
 
     @on(RulesetTabbedContent.RulesetChanged)
     def on_ruleset_changed(self, event: RulesetTabbedContent.RulesetChanged) -> None:
@@ -91,11 +137,38 @@ class RulesetTabsApp(App[None]):
         # self.log(f"Link: {link.value}")
         self.query_one(Static).update(Pretty(f"Link: {link}"))
 
+    async def action_debug(self):
+        self.debug = not self.debug
+        self.log(f"Debug Mode {'enabled' if self.debug else 'disabled'}")
 
-def main() -> None:
+    async def action_toggle_tree(self):
+        # show either navigation tree or category viewer
+        self.display_trees = not self.display_trees
+        panes = self.query("CategoryTabPane")
+
+        for pane in panes:
+            pane.display_tree = self.display_trees
+
+    async def action_quit(self) -> None:
+        if not self.current_id:
+            self.exit()
+
+        try:
+            from rich.panel import Panel
+
+            r = get_renderable(self.current_id)
+            self.exit(message=Panel(r))
+        except KeyError:
+            self.exit()
+
+
+@typer_app.command()
+def main(
+    inline: bool = typer.Option(False, help="Run the app inline in the terminal."),
+) -> None:
     app = RulesetTabsApp()
-    app.run()
+    app.run(inline=inline)
 
 
 if __name__ == "__main__":
-    main()
+    typer_app()
