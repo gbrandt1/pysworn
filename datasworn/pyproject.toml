@@ -1,26 +1,34 @@
 [project]
 name = "pysworn-datasworn"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Datasworn Python Wrapper Package"
 readme = "README.md"
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 # license = { file = "../CC.BY-NC-SA-4.0.LICENSE" }
 requires-python = ">=3.12"
 dependencies = [
-    "cairosvg>=2.8.2",
+    # "cairosvg>=2.8.2",
     "orjson>=3.10.18",
-    "rich-pixels>=3.0.1",
+    # "rich-pixels>=3.0.1",
     "typer>=0.19.2",
 ]
+
+[build-system]
+requires = ["uv_build>=0.9.15,<0.10.0"]
+build-backend = "uv_build"
+
+# [tool.uv_build]
+# package-data = { "pysworn.datasworn" = ["**/*.json"] }
+
+[tool.uv.build-backend]
+module-name = "pysworn.datasworn"
+# source-include = ["**/*.json"]
 
 [project.scripts]
 datasworn = "pysworn.datasworn.cli:app"
 
-[tool.hatch.version]
-path = 'src/pysworn/core/__init__.py'
+# [tool.hatch.version]
+# path = 'src/pysworn/core/__init__.py'
 
 [dependency-groups]
 dev = ["pytest>=8.4.2", "pytest-asyncio>=1.2.0", "pytest-coverage>=0.0"]
-
-[tool.uv.build-backend]
-source-include = ["src/pysworn/datasworn/_datasworn/*json"]

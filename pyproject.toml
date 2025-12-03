@@ -9,7 +9,6 @@ authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
 dependencies = ["pysworn-datasworn", "pysworn-reference", "pysworn-renderables"]
 
-
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
 build-backend = "uv_build"
@@ -19,15 +18,15 @@ managed = true
 package = false # the project itself is not a package
 
 [tool.uv.sources]
-pysworn-datasworn = { workspace = true }
 pysworn-reference = { workspace = true }
 pysworn-renderables = { workspace = true }
+pysworn-datasworn = { workspace = true }
 
 [tool.uv.workspace]
 members = ["datasworn", "reference", "journal", "renderables"]
 
 [tool.uv.build-backend]
-source-include = ["**/*json"]
+source-include = ["**"]
 
 [dependency-groups]
 dev = [
@@ -46,9 +45,6 @@ dev = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 testpaths = ["tests"]
-
-[tool.ruff]
-exclude = ["_attic/"]
 
 
 [tool.poe.tasks]

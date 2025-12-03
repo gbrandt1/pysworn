@@ -1,6 +1,13 @@
 from ._datasworn import *  # noqa
 
-from .main import RULESETS, get_parent_id, get_rule_types, index, rules, breadcrumbs
+from .main import (
+    RULESETS,
+    get_parent_id,
+    get_rule_types,
+    index,
+    rules,
+    breadcrumbs,
+)
 
 
 __all__ = [

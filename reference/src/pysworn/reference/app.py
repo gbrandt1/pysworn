@@ -1,24 +1,18 @@
-import logging
-
-from pysworn.datasworn import RulesPackageRuleset, rules
-
-# from pysworn.tui.commands import DataswornProvider
+from pysworn.datasworn import RulesPackageRuleset
+from pysworn.datasworn.main import rules
 from textual.app import App, ComposeResult
 from textual.containers import Container
-from textual.logging import TextualHandler
 from textual.screen import ModalScreen
 from textual.widgets import Markdown
 
+from .logging import log
 from .screen import ReferenceScreen
-from .themes import deepspace_theme, delve_theme, ironsworn_theme, starforged_theme
-
-logging.basicConfig(
-    level=logging.NOTSET,
-    handlers=[TextualHandler()],
+from .themes import (
+    deepspace_theme,
+    delve_theme,
+    ironsworn_theme,
+    starforged_theme,
 )
-
-logging.getLogger("markdown_it").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 WELCOME = """
 PySworn Reference - (c) 2025 G. Brandt
@@ -88,7 +82,7 @@ class PyswornApp(App):
     # def compose(self) -> ComposeResult:
     #     yield ReferenceScreen()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         for theme in (
             ironsworn_theme,
             delve_theme,
@@ -102,7 +96,7 @@ class PyswornApp(App):
         # self.theme = "starforged"
         self.theme = "deepspace"
 
-        self.push_screen(ReferenceScreen(), self.exit)
+        await self.push_screen(ReferenceScreen(), self.exit)
 
     # await self.push_screen_wait(ReferenceScreen())
 
@@ -110,10 +104,14 @@ class PyswornApp(App):
     #     self.push_screen(SplashScreen())
 
 
-app = PyswornApp()
-
-
 def run() -> None:
+    # global rules
+    # rule_server =
+    # load_rulesets()
+    # rules = rule_server.rules
+    log.info(f"Loaded rulesets: {list(rules.keys())}")
+
+    app = PyswornApp()
     app.run()
 
 

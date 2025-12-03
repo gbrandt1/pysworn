@@ -1,31 +1,30 @@
-import logging
 from collections import Counter, defaultdict
 
 # from io import StringIO
 from typing import Annotated
 
 import typer
+from pysworn.datasworn._inspect import Inspect
+from pysworn.datasworn.logging import log
+from pysworn.datasworn.main import (
+    RULESETS,
+    ParsedId,
+    breadcrumbs,
+    index,
+    load_rulesets,
+    rules,
+)
 from rich import print
 from rich.console import Console
-from rich.logging import RichHandler
 from rich.rule import Rule
 from rich.table import Table
 from rich.traceback import install
-
-from ._inspect import Inspect
-from .main import RULESETS, ParsedId, breadcrumbs, index, rules
 
 install()
 
 console = Console()
 # console = Console(file=StringIO(), force_terminal=True)
 
-
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
-log = logging.getLogger(__name__)
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -134,6 +133,24 @@ def rules_():
     for ruleset in rules:
         print(Rule(ruleset))
         print(rules[ruleset].rules)
+
+
+@app.callback()
+def callback(
+    log_level: Annotated[
+        str, typer.Option("--log-level", "-l", help="Set the logging level")
+    ] = "INFO",
+):
+    """DataSworn CLI."""
+
+    log.setLevel(log_level)
+    log.debug(f"Log level set to {log_level} for logger {log.name}")
+
+    rule_server = load_rulesets()
+    global rules
+    rules = rule_server.rules
+
+    # print(f"[bold green]DataSworn CLI[/bold green] - loaded {len(rules)} rulesets.")
 
 
 if __name__ == "__main__":

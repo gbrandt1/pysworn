@@ -1,4 +1,3 @@
-import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import fields, is_dataclass
@@ -11,14 +10,11 @@ import pysworn.datasworn._datasworn as _datasworn
 import typer
 from rich import print
 from rich.console import Console
-from rich.traceback import install
 
 from ._datasworn import *  # noqa
-
-install()
+from .logging import log
 
 console = Console()
-log = logging.getLogger(__name__)
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -162,8 +158,7 @@ class RulesServer:
         return _datasworn.RulesPackage.from_json_data(rules)
 
     def __init__(self) -> None:
-        global rules
-        rules = {}
+        self.rules = {}
         t0 = time.perf_counter()
         with ThreadPoolExecutor() as executor:
             futures = {
@@ -180,9 +175,9 @@ class RulesServer:
                 else:
                     # add individual rules to global index
                     add_to_index(id_tree, index, rules_package)
-                    rules[rules_package.id.value] = rules_package
+                    self.rules[rules_package.id.value] = rules_package
         t1 = time.perf_counter()
-        log.debug(f"Loaded rules in {t1 - t0:.2f} seconds")
+        log.debug(f"Loaded {len(self.rules)} rulesets in {t1 - t0:.2f} seconds")
 
 
 def get_parent_id(id_, node=id_tree):
@@ -249,4 +244,4 @@ def breadcrumbs(id_) -> list[str]:
     return parts
 
 
-RulesServer()
+rules = RulesServer().rules

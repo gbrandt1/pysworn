@@ -4,17 +4,21 @@ version = "0.1.0"
 description = "PySworn Reference Screen"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["pysworn-datasworn", "textual>=6.3.0"]
+dependencies = ["pysworn-datasworn", "pysworn-renderables", "textual>=6.3.0"]
 
 
 [project.scripts]
 pysworn = "pysworn.reference.app:run"
+pysworn-v2 = "pysworn.reference.app_2:run"
 
 [tool.uv]
 package = true
 
 [tool.uv.build-backend]
 module-name = "pysworn.reference"
+
+[tool.uv.sources]
+pysworn-renderables = { workspace = true }
 
 [dependency-groups]
 dev = ["textual-dev>=1.8.0"]

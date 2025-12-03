@@ -1,10 +1,10 @@
-import logging
 from collections import namedtuple
 from pathlib import PurePath
-from tkinter import N
-from typing import Type
+from typing import Annotated
 
 import typer
+
+# from pysworn.datasworn.main import rules
 from pysworn.reference.tabbed_content import (
     CategoryTabbedContent,
     RulesetTabbedContent,
@@ -21,14 +21,13 @@ from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import Static
 
+
 install()
 
 
 RulesetTuple = namedtuple("RulesetTuple", "name title")
 
-typer_app = typer.Typer(help="Run the Reference App")
-
-logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+typer_app = typer.Typer(no_args_is_help=True, invoke_without_command=True)
 
 
 class RulesetTabsApp(App[None]):
@@ -164,11 +163,26 @@ class RulesetTabsApp(App[None]):
 
 @typer_app.command()
 def main(
-    inline: bool = typer.Option(False, help="Run the app inline in the terminal."),
+    log_level: Annotated[
+        str, typer.Option("--log-level", "-l", help="Set the logging level")
+    ] = "INFO",
+    inline: Annotated[
+        bool,
+        typer.Option(
+            "--inline",
+            "-i",
+            help="Run the app inline in the terminal.",
+        ),
+    ] = False,
 ) -> None:
+    """PySworn UI Version 2."""
     app = RulesetTabsApp()
     app.run(inline=inline)
 
 
-if __name__ == "__main__":
+def run() -> None:
     typer_app()
+
+
+if __name__ == "__main__":
+    run()

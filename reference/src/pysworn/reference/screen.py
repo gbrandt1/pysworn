@@ -1,4 +1,4 @@
-from pysworn.datasworn import RULESETS, index, rules
+from pysworn.datasworn.main import RULESETS, index, rules
 from pysworn.reference import (
     VIEWER_TYPES,
     # ReferenceTree,
@@ -25,6 +25,7 @@ from textual.widgets._tabs import Tabs
 from ._inspect import Inspect
 from .history import History
 from .history_state import history
+from .logging import log
 from .tree import ReferenceTree
 from .viewer import RulesetViewer
 
@@ -199,6 +200,8 @@ class ReferenceScreen(ModalScreen[str]):
         pass
 
     def compose(self) -> ComposeResult:
+        # print("rules loaded: " + ", ".join(rules.keys()))
+        # log.info("rules loaded: " + ", ".join(rules.keys()))
         yield Header()
         with Horizontal():
             with RulesTabbedContent(id="ruleset-tabs"):
@@ -209,7 +212,9 @@ class ReferenceScreen(ModalScreen[str]):
         yield Static(id="current-link")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
+        log.info("Reference Screen mounted")
+
         self.query_one(History).display = False
         self.query_one("#current-link", Static).display = False
         self.post_message(self.Visit())
