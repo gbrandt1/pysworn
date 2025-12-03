@@ -21,6 +21,7 @@ from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import Static
 
+from .logging import log
 
 install()
 

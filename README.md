@@ -2,13 +2,41 @@
 
 ## Description
 
-PySworn is a terminal application written in Python based on [datasworn](https://github.com/rsek/datasworn) and  [Textual](https://textual.textualize.io/) to play [Ironsworn: Starforged](https://tomkinpress.com/pages/ironsworn-starforged) the tabletop roleplaying game by Shawn Tomkin.
+PySworn is a set of terminal applications written in Python based on [datasworn](https://github.com/rsek/datasworn) and  [Textual](https://textual.textualize.io/) to play [Ironsworn: Starforged](https://tomkinpress.com/pages/ironsworn-starforged) the tabletop roleplaying game by Shawn Tomkin.
+For full attribution see the bottom of this README.
 
 ## Installation
 
-`uv` is recommended for installation.
+### Local Installation
+
+`uv` is recommended for toolchain management.
+
+For installation, clone the repository and execute `uv sync` in the root directory (which depends on the individual packages).
+
+You can then activate the virtual environment or use `uv run` to start the applications.
 
 ## Usage
+
+The following executables are provided:
+
+| Name | Description
+| --- | ---
+| `pysworn` | Reference Browser.
+| `pysworn-v2` | Reference Browser (new version under development).
+| `datasworn` | Inspect the [datasworn](https://github.com/rsek/datasworn) JSON files used by PySworn.
+| `renderables` | PySworn Ironsworn:Starforged Rich Renderables dumping tool.
+
+### Direct Installation
+
+Alternatively you can run directly from this repository
+
+```uvx --from git+https://github.com/gbrandt1/pysworn.git#subdirectory=reference pysworn```
+
+```uvx --from git+https://github.com/gbrandt1/pysworn.git#subdirectory=reference pysworn-v2 -i```
+
+```uvx --from git+https://github.com/gbrandt1/pysworn.git#subdirectory=datasworn datasworn```
+
+```uvx --no-cache --from git+https://github.com/gbrandt1/pysworn.git#subdirectory=renderables renderables```
 
 ### PySworn Ironsworn:Starforged Reference Application
 
