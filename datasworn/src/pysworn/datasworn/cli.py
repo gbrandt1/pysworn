@@ -145,12 +145,6 @@ def callback(
     log.setLevel(log_level)
     log.debug(f"Log level set to {log_level} for logger {log.name}")
 
-    rule_server = load_rulesets()
-    global rules
-    rules = rule_server.rules
-
-    # print(f"[bold green]DataSworn CLI[/bold green] - loaded {len(rules)} rulesets.")
-
 
 if __name__ == "__main__":
     app()

@@ -105,10 +105,6 @@ class PyswornApp(App):
 
 
 def run() -> None:
-    # global rules
-    # rule_server =
-    # load_rulesets()
-    # rules = rule_server.rules
     log.info(f"Loaded rulesets: {list(rules.keys())}")
 
     app = PyswornApp()
