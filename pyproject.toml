@@ -26,6 +26,9 @@ pysworn-renderables = { workspace = true }
 [tool.uv.workspace]
 members = ["datasworn", "reference", "journal", "renderables"]
 
+[tool.uv.build-backend]
+source-include = ["**/*json"]
+
 [dependency-groups]
 dev = [
     "poethepoet>=0.34.0",
