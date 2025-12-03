@@ -21,3 +21,6 @@ path = 'src/pysworn/core/__init__.py'
 
 [dependency-groups]
 dev = ["pytest>=8.4.2", "pytest-asyncio>=1.2.0", "pytest-coverage>=0.0"]
+
+[tool.uv.build-backend]
+source-include = ["src/pysworn/datasworn/_datasworn/*json"]
