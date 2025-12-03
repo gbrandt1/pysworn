@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import typer
-from pysworn.datasworn import index, load_rulesets
+from pysworn.datasworn import index, rules
 from rich import print
 from rich.panel import Panel
 
@@ -16,11 +16,6 @@ def main(
     debug: Annotated[bool, typer.Option("--debug", "-d")] = False,
 ):
     from pysworn.renderables import RENDERABLES
-
-    rs = load_rulesets()
-    global rules
-    rules = rs.rules
-    log.debug(f"Loaded rulesets: {list(rules.keys())}")
 
     if prefix == "rules":
         renderable = RENDERABLES["rules"]
