@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from encodings.punycode import T
+from math import e
 from re import sub
 
 from pysworn.datasworn import index, rules
@@ -17,7 +19,7 @@ from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Static, TabbedContent, TabPane, Tabs
+from textual.widgets import Pretty, Static, TabbedContent, TabPane, Tabs
 from textual.widgets._content_switcher import ContentSwitcher
 from textual.widgets._tabbed_content import ContentTab
 
@@ -169,6 +171,9 @@ class CategoryViewer(Widget):
 
 
 class CategoryTabPane(TabPane):
+    BINDINGS = [
+        Binding("d", "toggle_debug", "Toggle Debug View"),
+    ]
     DEFAULT_CSS = """
     CategoryTabPane {
         layout: horizontal;
@@ -189,6 +194,7 @@ class CategoryTabPane(TabPane):
     """
 
     display_tree = reactive(True)
+    debug = reactive(True)
 
     def __init__(
         self,
@@ -217,6 +223,7 @@ class CategoryTabPane(TabPane):
             with VerticalScroll():
                 with ContentSwitcher(id="content"):
                     yield CategoryViewer(self.collection, id=self.category)
+                    yield Pretty("", id="debug")
 
     async def watch_display_tree(self, value):
         try:
@@ -242,10 +249,17 @@ class CategoryTabPane(TabPane):
         except NoMatches:
             await content.add_content(
                 Static(get_renderable(event.id_)),
+                # Pretty(index[event.id_], id="{content_id}-debug", classes="debug"),
                 id=content_id,
                 set_current=True,
             )
             self.query_one(f"#{content_id}", Static).display = True
+
+        self.query_one("#debug", Pretty).update(index[event.id_])
+
+    def action_toggle_debug(self) -> None:
+        self.debug = not self.debug
+        self.query_one("#debug").display = self.debug
 
 
 class CategoryTabbedContent(PySwornTabbedContent):

@@ -50,6 +50,14 @@ This tool opens a [Textual](https://textual.textualize.io/) application to quick
 
 This tool can be used to inspect the [datasworn](https://github.com/rsek/datasworn) JSON files used by PySworn.
 
+## Roadmap
+
+- add tests.
+- - finalize browsers to quickly select content or dice roll results.
+- add journal to record results.
+  - add persistence.
+- add configuration / settings.
+
 ## Attribution
 
 This work is based on "Ironsworn: Starforged", created by Shawn Tomkin, and licensed for our use under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license (<https://creativecommons.org/licenses/by-nc-sa/4.0/).​>

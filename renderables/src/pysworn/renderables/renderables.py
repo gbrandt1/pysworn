@@ -2,8 +2,9 @@ import re
 
 from pysworn.datasworn import breadcrumbs, index
 from rich.columns import Columns
-from rich.console import Group, RenderableType
+from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
 from rich.markdown import Markdown
+from rich.measure import Measurement
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.rule import Rule
@@ -243,22 +244,19 @@ class NpcCollectionRenderable:
 class OracleRollableRenderable:
     def __init__(self, table):
         self.table = table
+        self.rows = [OracleRollableRowRenderable(row) for row in self.table.rows]
 
-    def __rich__(self):
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
         msg = " > ".join(breadcrumbs(self.table.id.value))
-        rows = []
-        for row in self.table.rows:
-            # rows.append(Align(OracleRollableRowRenderable(row), width=54))
-            rows.append(OracleRollableRowRenderable(row))
-        return Group(
-            Markdown(msg),
-            Rule(style="dim white"),
-            Columns(
-                rows,
-                expand=True,
-                equal=True,
-                column_first=True,
-            ),
+        yield Markdown(msg)
+        yield Rule(style="dim white")
+        yield Columns(
+            self.rows,
+            expand=True,
+            equal=True,
+            column_first=True,
         )
 
 
@@ -266,9 +264,17 @@ class OracleRollableRowRenderable:
     def __init__(self, row):
         self.row = row
 
+    # def __rich_console__(
+    # self, console: Console, options: ConsoleOptions
+    # ) -> RenderResult:
+    # m = Text.from_markup(str(self))
+    # m = Markdown(str(self))
+    # meas = Measurement.get(console, options, m)
+    # yield Text(f"{meas.minimum},{meas.maximum} {m}")
+    # yield m
+
     def __rich__(self):
         return Text.from_markup(str(self))
-        # return Markdown(str(self))
 
     def __str__(self):
         roll = self.row.roll
@@ -283,10 +289,10 @@ class OracleRollableRowRenderable:
         text = re.sub(r"\[(.+?)\]\(.+?\)", (r"\1").upper(), text)
 
         msg = f"{roll:^7} {text}"
-        # if self.row.text2:
-        #     msg += f"{self.row.text2.value} "
-        # if self.row.text3:
-        #     msg += f"{self.row.text3.value}"
+        # if hasattr(self.row, "text2") and self.row.text2:
+        #     msg += f" {self.row.text2.value}"
+        # if hasattr(self.row, "text3") and self.row.text3:
+        #     msg += f" {self.row.text3.value}"
         return msg
 
 
