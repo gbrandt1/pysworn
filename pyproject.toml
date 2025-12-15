@@ -50,4 +50,6 @@ testpaths = ["tests"]
 [tool.poe.tasks]
 fix = "uv run --active ruff check --fix"
 dev = "uv run --active textual run --dev -c pysworn"
+dev2 = "uv run --active textual run --dev -c pysworn-v2"
+
 console = "uv run --active textual console"

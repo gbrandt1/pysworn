@@ -212,7 +212,7 @@ class RulesetViewer(RuleViewer):
         r = self.ruleset
         msg = f"This work is based on **{markdown(r.title)}**, "
         for author in r.authors:
-            msg += f"created by {author.name.value} {author.email or ''} {author.url or ''} {r.date.strftime('%Y')}, "
+            msg += f"created by {author.name.value} {author.email or ''} {author.url or ''} {r.date}, "
         msg += (
             f"and licensed for our use under "
             f"[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license]({r.license.value}).\n\n"

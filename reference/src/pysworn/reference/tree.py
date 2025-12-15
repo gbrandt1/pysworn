@@ -149,5 +149,13 @@ class ReferenceTree(PySwornTree):
         return {node.data: node for node in self.walk_nodes() if node.data}
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        event.stop()
+        # return
+        self.scroll_to_line(self.cursor_line)
+        self.post_message(self.ReferenceHighlighted(event.node.data))
+
+    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+        event.stop()
+        # return
         self.scroll_to_line(self.cursor_line)
         self.post_message(self.ReferenceHighlighted(event.node.data))

@@ -32,6 +32,8 @@ RULESETS = [
     "starforged",
     "starsmith",
     "sundered_isles",
+    # "ancient_wonders",
+    "fe_runners",
 ]
 
 TYPE_TITLES = {
@@ -73,6 +75,8 @@ TYPE_TITLES = {
     "truth.option.oracle_rollable.row": "Truth Option Oracle Rows",
     "rules": "Rules",
     "source": "Source",
+    # "ancient_wonders": "Ancient Wonders",
+    "fe_runners": "FE Runners",
 }
 
 
@@ -87,9 +91,13 @@ class ParsedId:
     def __init__(self, id_: str) -> None:
         self.id: str = id_
         self.type: str = "ruleset"
-
+        self.ruleset: str
         self.category: str | None = None
         self.subcategory: str | None = None
+
+        if id_.startswith("datasworn:"):
+            id_ = id_[10:]
+
         if ":" in id_:
             self.type, path = id_.split(":")
             if len(pp := path.split("/")) < 3:
@@ -99,6 +107,9 @@ class ParsedId:
         elif id_ in RULESETS:
             self.ruleset = id_
             self.type = "source"
+        else:
+            msg = f"Could not parse id: {id_}"
+            raise KeyError(msg)
 
         if self.category:
             self.category = self.category.split(".")[0]

@@ -2,6 +2,7 @@ from pysworn.renderables.renderables import (
     AssetAbilityRenderable,
     AssetRenderable,
     AtlasEntryRenderable,
+    CategoryRenderable,
     CollectionRenderable,
     DelveSiteDenizenRenderable,
     DelveSiteDomainRenderable,
@@ -72,6 +73,8 @@ RENDERABLES = {
     "truth.option.oracle_rollable": OracleRollableRenderable,
     "truth.option.oracle_rollable.row": OracleRollableRowRenderable,
     "rules": RulesRenderable,
+    #
+    "category": CategoryRenderable,
 }
 
 __all__ = [

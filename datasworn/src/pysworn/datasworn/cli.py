@@ -19,6 +19,8 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.traceback import install
 
+from .logging import log
+
 install()
 
 console = Console()

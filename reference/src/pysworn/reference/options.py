@@ -29,6 +29,8 @@ class TagOptionLists(Widget):
         with HorizontalScroll():
             tags: dict = index[self.ruleset].rules.tags
             for tag, tag_rule in tags.items():
+                if not hasattr(tag_rule, "value_type"):
+                    continue
                 if tag_rule.value_type == "enum":
                     yield Select(
                         ((v.value, v.value) for v in tag_rule.enum),

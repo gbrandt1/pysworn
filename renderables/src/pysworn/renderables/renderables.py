@@ -4,7 +4,6 @@ from pysworn.datasworn import breadcrumbs, index
 from rich.columns import Columns
 from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
 from rich.markdown import Markdown
-from rich.measure import Measurement
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.rule import Rule
@@ -17,12 +16,28 @@ class RuleSetRenderable:
 
     def __rich__(self):
         msg = f"# {self.ruleset.title.value}\n\n"
-        msg += f"{self.ruleset.url.value}\n\n"
-        msg += f"Licensed for our use under {self.ruleset.license.value}\n\n"
-        msg += "Authors: "
+        msg += "by "
         for author in self.ruleset.authors:
             msg += f"{author.name.value} "
-            # {author.email.value} {author.url.value}\n"
+        if author.email:
+            msg += f"{author.email.value} "
+        if author.url:
+            msg += f"{author.url.value} "
+        msg += "\n\n"
+        msg += f"[{self.ruleset.url.value}]({self.ruleset.url.value}) - "
+        msg += f"Licensed for our use under {self.ruleset.license.value}\n\n"
+        return Markdown(msg)
+
+
+class CategoryRenderable:
+    def __init__(self, category):
+        self.category = category
+
+    def __rich__(self):
+        msg = ", ".join(
+            [f"[{k.title()}]({v.id.value})" for k, v in self.category.items()]
+        )
+
         return Markdown(msg)
 
 
@@ -278,17 +293,19 @@ class OracleRollableRowRenderable:
 
     def __str__(self):
         roll = self.row.roll
+        rtxt = ""
         if roll:
             roll_min = self.row.roll.min if self.row.roll.min else ""
             roll_max = self.row.roll.max if self.row.roll.max else ""
-            roll = f"{roll_min}-{roll_max}"
-        else:
-            roll = ""
+            if roll_min == roll_max:
+                rtxt = f"{roll_min}"
+            else:
+                rtxt = f"{roll_min}-{roll_max}"
 
         text = self.row.text.value
         text = re.sub(r"\[(.+?)\]\(.+?\)", (r"\1").upper(), text)
 
-        msg = f"{roll:^7} {text}"
+        msg = f"{rtxt:^7} [link={self.row.id.value}]{text}[/link]"
         # if hasattr(self.row, "text2") and self.row.text2:
         #     msg += f" {self.row.text2.value}"
         # if hasattr(self.row, "text3") and self.row.text3:
