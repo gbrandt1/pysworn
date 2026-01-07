@@ -1,6 +1,7 @@
 import re
 
-from pysworn.datasworn import breadcrumbs, index
+from datasworn.core import index
+from datasworn.core.models import Ruleset
 from rich.columns import Columns
 from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
 from rich.markdown import Markdown
@@ -10,22 +11,26 @@ from rich.rule import Rule
 from rich.text import Text
 
 
+def breadcrumbs(id_: str) -> str:
+    return index[id_].name
+
+
 class RuleSetRenderable:
-    def __init__(self, ruleset):
+    def __init__(self, ruleset: Ruleset):
         self.ruleset = ruleset
 
     def __rich__(self):
-        msg = f"# {self.ruleset.title.value}\n\n"
+        msg = f"# {self.ruleset.title}\n\n"
         msg += "by "
         for author in self.ruleset.authors:
-            msg += f"{author.name.value} "
-        if author.email:
-            msg += f"{author.email.value} "
-        if author.url:
-            msg += f"{author.url.value} "
+            msg += f"{author.name} "
+            if author.email:
+                msg += f"{author.email} "
+            if author.url:
+                msg += f"{author.url} "
         msg += "\n\n"
-        msg += f"[{self.ruleset.url.value}]({self.ruleset.url.value}) - "
-        msg += f"Licensed for our use under {self.ruleset.license.value}\n\n"
+        msg += f"[{self.ruleset.url}]({self.ruleset.url}) - "
+        msg += f"Licensed for our use under {self.ruleset.license}\n\n"
         return Markdown(msg)
 
 
@@ -34,9 +39,7 @@ class CategoryRenderable:
         self.category = category
 
     def __rich__(self):
-        msg = ", ".join(
-            [f"[{k.title()}]({v.id.value})" for k, v in self.category.items()]
-        )
+        msg = ", ".join([f"[{k.title()}]({v.id})" for k, v in self.category.items()])
 
         return Markdown(msg)
 
@@ -46,19 +49,16 @@ class CollectionRenderable:
         self.collection = collection
 
     def __rich__(self):
-        msg = f"## {self.collection.name.value}\n\n"
+        msg = f"## {self.collection.name}\n\n"
         if self.collection.summary:
-            msg += f"{self.collection.summary.value}\n\n"
+            msg += f"{self.collection.summary}\n\n"
         if self.collection.description:
-            msg += f"{self.collection.description.value}\n\n"
+            msg += f"{self.collection.description}\n\n"
 
         msg += (
             "Oracles: "
             + ", ".join(
-                [
-                    f"[{v.name.value}]({v.id.value})"
-                    for v in self.collection.contents.values()
-                ]
+                [f"[{v.name}]({v.id})" for v in self.collection.contents.values()]
             )
             + "\n\n"
         )
@@ -83,9 +83,9 @@ class AtlasEntryRenderable:
         self.atlas_entry = atlas_entry
 
     def __rich__(self):
-        msg = f"## {self.atlas_entry.name.value}\n\n"
-        msg += f"{self.atlas_entry.summary.value}\n\n"
-        msg += f"{self.atlas_entry.description.value}\n\n"
+        msg = f"## {self.atlas_entry.name}\n\n"
+        msg += f"{self.atlas_entry.summary}\n\n"
+        msg += f"{self.atlas_entry.description}\n\n"
         return Markdown(msg)
 
 
@@ -98,7 +98,7 @@ class AssetAbilityRenderable:
 
         t = Table.grid(padding=(0, 1), pad_edge=False)
         t.add_row(
-            "⬤" if self.ability.enabled else "◯", Markdown(f"{self.ability.text.value}")
+            "⬤" if self.ability.enabled else "◯", Markdown(f"{self.ability.text}")
         )
         moves = []
         # for move in self.ability.moves:
@@ -111,8 +111,8 @@ class AssetRenderable:
         self.asset = asset
 
     def __rich__(self):
-        msg = " > ".join(breadcrumbs(self.asset.id.value))
-        # msg = f"{self.asset.category.value.upper()} \n{self.asset.name.value.upper()}"
+        msg = breadcrumbs(self.asset.id)
+        # msg = f"{self.asset.category.upper()} \n{self.asset.name.upper()}"
         abilities = []
         for ability in self.asset.abilities:
             abilities.append("\n")
@@ -125,12 +125,13 @@ class DelveSiteRenderable:
         self.delve_site = delve_site
 
     def __rich__(self):
-        msg = f"{self.delve_site.category.value.upper()} \n{self.delve_site.name.value.upper()}\n"
-        theme = index[self.delve_site.theme.value].name.value
-        domain = index[self.delve_site.domain.value].name.value
-        region = index[self.delve_site.region.value].name.value
+        msg = breadcrumbs(self.delve_site.id)
+        # msg = f"{self.delve_site.category.upper()} \n{self.delve_site.name.upper()}\n"
+        theme = index[self.delve_site.theme].name
+        domain = index[self.delve_site.domain].name
+        region = index[self.delve_site.region].name
         msg += f"{theme} {domain} in the {region}. "
-        msg += f"Rank: {self.delve_site.rank.value}\n\n"
+        msg += f"Rank: {self.delve_site.rank}\n\n"
         # denizens = ["| Roll | Frequency | NPC | Name |\n| --- | --- | --- | --- |\n"]
         denizens = "Denizens\n\nRoll | Frequency | NPC | Name\n---|---|---|---\n"
         for denizen in self.delve_site.denizens:
@@ -145,12 +146,12 @@ class DelveSiteDenizenRenderable:
     def __str__(self):
         roll = f"{self.denizen.roll.min}-{self.denizen.roll.max} "
         msg = f"{roll:^7} "
-        msg += f"| {self.denizen.frequency.value} "
+        msg += f"| {self.denizen.frequency} "
         if self.denizen.npc:
-            npc = index[self.denizen.npc.value].name.value
+            npc = index[self.denizen.npc].name
             msg += f"| {npc} "
         if self.denizen.name:
-            msg += f"| {self.denizen.name.value} "
+            msg += f"| {self.denizen.name} "
 
         return msg + "\n"
 
@@ -163,7 +164,8 @@ class DelveSiteThemeRenderable:
         self.theme = theme
 
     def __rich__(self):
-        msg = f"{self.theme.category.value.upper()} \n{self.theme.name.value.upper()}\n"
+        msg = breadcrumbs(self.theme.id)
+        # msg = f"{self.theme.category.upper()} \n{self.theme.name.upper()}\n"
         dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
         for danger in self.theme.dangers:
             dangers.append(DelveSiteFeatureRenderable(danger))
@@ -178,9 +180,8 @@ class DelveSiteDomainRenderable:
         self.domain = domain
 
     def __rich__(self):
-        msg = (
-            f"{self.domain.category.value.upper()} \n{self.domain.name.value.upper()}\n"
-        )
+        msg = breadcrumbs(self.domain.id)
+        # msg = f"{self.domain.category.upper()} \n{self.domain.name.upper()}\n"
         dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
         for danger in self.domain.dangers:
             dangers.append(DelveSiteFeatureRenderable(danger))
@@ -195,7 +196,7 @@ class DelveSiteFeatureRenderable:
         self.feature = feature
 
     def __rich__(self):
-        msg = f"{self.feature.roll.min}-{self.feature.roll.max}: {self.feature.text.value} "
+        msg = f"{self.feature.roll.min}-{self.feature.roll.max}: {self.feature.text} "
         return Markdown(msg)
         # return Pretty(self.feature)
 
@@ -206,8 +207,8 @@ class MoveRenderable:
 
     def __rich__(self):
         msg = (
-            # f"{self.move.category.value.upper()}\n"
-            f"{self.move.name.value.upper()}\n\n{self.move.text.value}"
+            # f"{self.move.category.upper()}\n"
+            f"{self.move.name.upper()}\n\n{self.move.text}"
         )
         return Markdown(msg)
 
@@ -217,21 +218,18 @@ class NpcVariantRenderable:
         self.npc = npc
 
     def __rich__(self):
-        msg = (
-            f"**{self.npc.name.value}** "
-            f"{self.npc.nature.value.value} Rank {self.npc.rank.value}\n\n"
-        )
+        msg = f"**{self.npc.name}** {self.npc.nature} Rank {self.npc.rank}\n\n"
         for attr in ("drives", "features", "tactics"):
             if hasattr(self.npc, attr) and getattr(self.npc, attr):
                 msg += f"### {attr.title()}\n\n"
                 for item in getattr(self.npc, attr):
-                    msg += f"- {item.value}\n"
+                    msg += f"- {item}\n"
 
         if self.npc.summary:
-            msg += f"{self.npc.summary.value}\n\n"
-        msg += f"{self.npc.description.value}\n\n"
+            msg += f"{self.npc.summary}\n\n"
+        msg += f"{self.npc.description}\n\n"
         if hasattr(self.npc, "quest_starter") and self.npc.quest_starter:
-            msg += f"> *{self.npc.quest_starter.value}*\n\n"
+            msg += f"> *{self.npc.quest_starter}*\n\n"
 
         return Markdown(msg)
 
@@ -241,7 +239,7 @@ class NpcRenderable:
         self.npc = npc
 
     def __rich__(self):
-        msg = " > ".join(breadcrumbs(self.npc.id.value))
+        msg = breadcrumbs(self.npc.id)
         variants = [NpcVariantRenderable(self.npc)]
         for variant in self.npc.variants.values():
             variants.append(NpcVariantRenderable(variant))
@@ -264,7 +262,7 @@ class OracleRollableRenderable:
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = " > ".join(breadcrumbs(self.table.id.value))
+        msg = breadcrumbs(self.table.id)
         yield Markdown(msg)
         yield Rule(style="dim white")
         yield Columns(
@@ -279,17 +277,9 @@ class OracleRollableRowRenderable:
     def __init__(self, row):
         self.row = row
 
-    # def __rich_console__(
-    # self, console: Console, options: ConsoleOptions
-    # ) -> RenderResult:
-    # m = Text.from_markup(str(self))
-    # m = Markdown(str(self))
-    # meas = Measurement.get(console, options, m)
-    # yield Text(f"{meas.minimum},{meas.maximum} {m}")
-    # yield m
-
     def __rich__(self):
         return Text.from_markup(str(self))
+        # return Markdown(str(self))
 
     def __str__(self):
         roll = self.row.roll
@@ -298,18 +288,20 @@ class OracleRollableRowRenderable:
             roll_min = self.row.roll.min if self.row.roll.min else ""
             roll_max = self.row.roll.max if self.row.roll.max else ""
             if roll_min == roll_max:
-                rtxt = f"{roll_min}"
+                rtxt = f"{roll_min:^8}"
             else:
                 rtxt = f"{roll_min}-{roll_max}"
 
-        text = self.row.text.value
+        text = self.row.text
         text = re.sub(r"\[(.+?)\]\(.+?\)", (r"\1").upper(), text)
 
-        msg = f"{rtxt:^7} [link={self.row.id.value}]{text}[/link]"
+        msg = f"{rtxt:^8} {text}"
+        # msg = f"{rtxt:^7} [link={self.row.id}]{text}[/link]"
+
         # if hasattr(self.row, "text2") and self.row.text2:
-        #     msg += f" {self.row.text2.value}"
+        #     msg += f" {self.row.text2}"
         # if hasattr(self.row, "text3") and self.row.text3:
-        #     msg += f" {self.row.text3.value}"
+        #     msg += f" {self.row.text3}"
         return msg
 
 
@@ -318,14 +310,14 @@ class RarityRenderable:
         self.rarity = rarity
 
     def __rich__(self):
-        asset = index[self.rarity.asset.value]
+        asset = index[self.rarity.asset]
         msg = (
-            f"**{self.rarity.name.value}** "
-            # f"[{asset.name.value}]({self.rarity.asset.value})"
-            f"for {asset.name.value.upper()} "
+            f"**{self.rarity.name}** "
+            # f"[{asset.name}]({self.rarity.asset})"
+            f"for {asset.name.upper()} "
             f"(XP cost: {self.rarity.xp_cost})\n\n"
             f"---\n\n"
-            f"{self.rarity.description.value}\n\n"
+            f"{self.rarity.description}\n\n"
         )
         return Markdown(msg)
 
@@ -339,12 +331,12 @@ class TruthOptionRenderable:
         roll = self.truth.roll
         msg += f"**{roll.min}-{roll.max}** "
         if self.truth.summary:
-            msg += f"**{self.truth.summary.value}**\n\n"
-        msg += f"{self.truth.description.value}\n\n"
+            msg += f"**{self.truth.summary}**\n\n"
+        msg += f"{self.truth.description}\n\n"
         oracles = []
         for oracle in self.truth.oracles.values():
             oracles.append(OracleRollableRenderable(oracle))
-        msg2 = f"\n> *{self.truth.quest_starter.value}*\n\n"
+        msg2 = f"\n> *{self.truth.quest_starter}*\n\n"
         return Group(Markdown(msg), *oracles, Markdown(msg2))
 
 
@@ -353,10 +345,10 @@ class TruthRenderable:
         self.truth = truth
 
     def __rich__(self):
-        name = f"# {self.truth.name.value}"
+        name = f"# {self.truth.name}"
         your_character = ""
         if hasattr(self.truth, "your_character") and self.truth.your_character:
-            your_character = f"> *{self.truth.your_character.value}*\n\n"
+            your_character = f"> *{self.truth.your_character}*\n\n"
         options = []
         for option in self.truth.options:
             options.append(TruthOptionRenderable(option))
@@ -384,7 +376,7 @@ class RulesRenderable:
                     if attr == "tags":
                         rules.append(Markdown(f"### {k}"))
                     else:
-                        rules.append(Markdown(f"### {v.label.value}"))
-                    rules.append(Markdown(v.description.value))
+                        rules.append(Markdown(f"### {v.label}"))
+                    rules.append(Markdown(v.description))
                     # rules.append(Pretty(v))
         return Group(*rules)

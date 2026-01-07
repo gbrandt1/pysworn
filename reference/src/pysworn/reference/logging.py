@@ -1,6 +1,7 @@
 import logging
 from os import pread
 from sys import prefix
+from webbrowser import get
 
 from rich.logging import RichHandler
 
@@ -15,7 +16,7 @@ log = logging.getLogger("pysworn.reference")
 log.setLevel(logging.INFO)
 
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
-logging.getLogger("asyncio").setLevel(logging.WARNING)
+logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
 
 def tree() -> tuple[str, logging.Logger, list]:
@@ -64,20 +65,39 @@ def print_tree():
 
     def _add_node(tree_node, log_node):
         name, logger, children = log_node
-        if isinstance(logger, logging.PlaceHolder):
-            child_node = tree_node.add(f"<{logger.__class__.__name__}> '{name}'")
-        else:
+        label = f"<{logger.__class__.__name__} '{name}'>"
+        if not isinstance(logger, logging.PlaceHolder):
             level = logging.getLevelName(logger.getEffectiveLevel())
-            child_node = tree_node.add(
-                f"[{log_colors[level]}]{level}[/] "
-                f"<{logger.__class__.__name__}> '{name}' "
-            )
+            label += f" [{log_colors[level]}]{level}[/]>"
+
+            if not logger.propagate:
+                label = "x" + label
+
+            if logger.disabled:
+                label = "[dim]" + label
+
+        child_node = tree_node.add(label)
 
         for f in getattr(logger, "filters", ()):
             child_node.add(f"[bright_blue]Filter:[/] {f}")
 
         for h in getattr(logger, "handlers", ()):
-            child_node.add(f"[bright_blue]Handle:[/] {h}")
+            handler_node = child_node.add(f"[bright_blue]Handler:[/] {h}")
+
+            for f in getattr(h, "filters", ()):
+                handler_node.add(f"[bright_blue]Filter:[/] {f}")
+
+            formatter = getattr(h, "formatter", None)
+            if formatter is not None:
+                if isinstance(formatter, logging.Formatter):
+                    handler_node.add(
+                        f"[bright_blue]Formatter:[/] format='{formatter._fmt}' datefmt='{formatter.datefmt}'"
+                    )
+                else:
+                    handler_node.add(f"[bright_blue]Formatter:[/] {formatter!r}")
+
+            if getattr(h, "target", None):
+                handler_node.add(f"[bright_blue]Target:[/] {h.target}")
 
         for child in children:
             _add_node(child_node, child)

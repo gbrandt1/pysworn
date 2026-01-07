@@ -32,7 +32,7 @@ RULESETS = [
     "starforged",
     "starsmith",
     "sundered_isles",
-    # "ancient_wonders",
+    "ancient_wonders",
     "fe_runners",
 ]
 

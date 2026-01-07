@@ -28,6 +28,7 @@ RULESETS = {
     "starforged": ("[u]S[/u]tarforged", "S"),
     "starsmith": ("S[u]t[/u]arsmith", "T"),
     "sundered_isles": ("S[u]u[/u]ndered Isles", "U"),
+    "ancient_wonders": ("[u]A[/u]ncient Wonders", "A"),
     "fe_runners": ("[u]F[/u]E Runners", "F"),
 }
 

@@ -1,20 +1,37 @@
+import logging
 from typing import Annotated
 
 import typer
-from pysworn.datasworn import index, rules
+from datasworn.core import datasworn_tree, index
 from rich import print
 from rich.panel import Panel
 
-
 app = typer.Typer()
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 
 @app.command()
 def main(
-    prefix: Annotated[str, typer.Option("--prefix", "-p")] = "oracle_rollable",
+    prefix: Annotated[str, typer.Option("--prefix")] = "",
     debug: Annotated[bool, typer.Option("--debug", "-d")] = False,
+    panel: Annotated[bool, typer.Option("--panel", "-p")] = False,
+    no_rows: Annotated[bool, typer.Option("--no-rows", "-r")] = False,
 ):
     from pysworn.renderables import RENDERABLES
+
+    for k in datasworn_tree:
+        print(k)
+        datasworn_tree[k]
+    # datasworn_tree["classic"]
+    # datasworn_tree["delve"]
+    # datasworn_tree["starforged"]
+    # datasworn_tree["starsmith"]
+    # datasworn_tree["sundered_isles"]
+    # datasworn_tree["ancient_wonders"]
+    # datasworn_tree["fe_runners"]
+    # print(index.keys())
 
     if prefix == "rules":
         renderable = RENDERABLES["rules"]
@@ -30,25 +47,30 @@ def main(
             )
 
     for link, v in index.items():
-        if prefix and not link.startswith(prefix):
-            continue
         rule_type = link
         if ":" in link:
             rule_type = link.split(":")[0]
+            if len(prefix) > 0 and rule_type != prefix:
+                # print(rule_type)
+                continue
+            if no_rows and rule_type.endswith(".row"):
+                continue
         renderable = RENDERABLES.get(rule_type)
         if debug:
             print(f"[i dim]{link}[/] --> {renderable} {type(index[link]).__name__}")
         if renderable:
-            print(
-                # Panel(
-                renderable(index[link]),
-                # title=f"[dim]{prefix.upper()}",
-                # title_align="left",
-                # border_style="dim",
-                # width=80,
-                # )
-            )
-            # print(renderable(index[link]))
+            if panel:
+                print(
+                    Panel(
+                        renderable(index[link]),
+                        title=f"[dim]{prefix.upper()}",
+                        title_align="left",
+                        border_style="dim",
+                        width=120,
+                    )
+                )
+            else:
+                print(renderable(index[link]))
 
 
 if __name__ == "__main__":

@@ -5,7 +5,12 @@ description = "PySworn Rich Renderables"
 readme = "README.md"
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
-dependencies = ["pysworn-datasworn"]
+dependencies = [
+    "datasworn",
+    "datasworn-community-content",
+    "rich>=14.2.0",
+    "typer>=0.21.0",
+]
 
 [project.scripts]
 renderables = "pysworn.renderables.__main__:app"
@@ -18,6 +23,8 @@ module-name = "pysworn.renderables"
 
 [tool.uv.sources]
 pysworn-datasworn = { workspace = true }
+datasworn = { path = "../../datasworn/pkg/python/datasworn" }
+datasworn-community-content = { path = "../../datasworn/pkg/python/datasworn-community-content" }
 
 [build-system]
 requires = ["uv_build>=0.8.15,<0.9.0"]

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from re import sub
 
 from pysworn.datasworn import index, rules
+from pysworn.datasworn.main import ParsedId
 from pysworn.reference.tree import ReferenceTree
 from pysworn.renderables import CategoryRenderable, get_renderable
 from rich.columns import Columns
@@ -14,7 +15,7 @@ from textual.content import Content
 from textual.css.query import NoMatches
 from textual.lazy import Lazy
 from textual.message import Message
-from textual.reactive import reactive
+from textual.reactive import reactive, var
 from textual.widget import Widget
 from textual.widgets import Pretty, Static, TabbedContent, TabPane
 from textual.widgets._content_switcher import ContentSwitcher
@@ -218,9 +219,11 @@ class CategoryTabs(Vertical):
         Binding("up,k", "app.focus_previous", "Focus previous", show=False),
     ]
 
-    @dataclass
-    class CategoryChanged(Message):
-        category: str
+    current_id: var[str] = var("oracles")
+
+    # @dataclass
+    # class CategoryChanged(Message):
+    #     category: str
 
     def __init__(self, ruleset: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -256,19 +259,33 @@ class CategoryTabs(Vertical):
     #                 self.disable_tab(category)
     #     self.loading = False
 
-    def on_tabbed_content_tab_activated(
-        self, event: TabbedContent.TabActivated
-    ) -> None:
-        event.stop()
-        if not event.tab.id:
-            msg = "Activated tab has no id"
-            raise ProgrammingError(msg)
-        category = ContentTab.sans_prefix(event.tab.id)
-        self.log(f"Category changed to: {category}")
-        self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
+    # def on_tabbed_content_tab_activated(
+    #     self, event: TabbedContent.TabActivated
+    # ) -> None:
+    #     event.stop()
+    #     if not event.tab.id:
+    #         msg = "Activated tab has no id"
+    #         raise ProgrammingError(msg)
+    #     category = ContentTab.sans_prefix(event.tab.id)
+    #     self.log(f"Category changed to: {category}")
+    #     self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
 
-    def on_tab_pane_focused(self, event) -> None:
-        event.stop()
-        return
-        category = ContentTab.sans_prefix(self.active)
-        self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
+    # def on_tab_pane_focused(self, event) -> None:
+    #     event.stop()
+    #     return
+    #     category = ContentTab.sans_prefix(self.active)
+    #     self.post_message(self.CategoryChanged(f"{self.ruleset}.{category}"))
+
+    # async def watch_current_id(self, id_):
+    #     parsed_id = ParsedId(id_)
+    #     category = parsed_id.category
+    #     self.log(f"watch_current_id: {id_}")
+    #     #     # with self.prevent(TabbedContent.TabActivated):
+    #     #     #     with self.prevent(TabPane.Focused):
+    #     self.query_one(TabbedContent).active = category
+
+    def action_jump_to(self, category: str) -> None:
+        self.log(f"Jumping to category: {category}")
+        ruleset = ParsedId(self.current_id).ruleset
+        self.current_id = f"{ruleset}.{category}"
+        self.query_one(TabbedContent).focus()

@@ -7,7 +7,12 @@ readme = "README.md"
 keywords = ["ironsworn", "starforged", "ttrpg"]
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
-dependencies = ["pysworn-datasworn", "pysworn-reference", "pysworn-renderables"]
+dependencies = [
+    "datasworn",
+    "pysworn-datasworn",
+    "pysworn-reference",
+    "pysworn-renderables",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
@@ -21,6 +26,7 @@ package = false # the project itself is not a package
 pysworn-reference = { workspace = true }
 pysworn-renderables = { workspace = true }
 pysworn-datasworn = { workspace = true }
+datasworn = { path = "../datasworn/pkg/python/datasworn" }
 
 [tool.uv.workspace]
 members = ["datasworn", "reference", "journal", "renderables"]
@@ -38,6 +44,7 @@ dev = [
     "textual-dev>=1.7.0",
     "pyinstrument>=5.0.1",
     "pytest-xdist>=3.8.0",
+    "textual-dissect>=0.2.0",
 ]
 
 
