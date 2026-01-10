@@ -1,0 +1,15 @@
+[project]
+name = "world"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "datasworn",
+    "pysworn-renderables",
+    "rich>=14.2.0",
+]
+
+[tool.uv.sources]
+datasworn = { path = "../../datasworn/pkg/python/datasworn" }
+pysworn-renderables = { workspace = true }
