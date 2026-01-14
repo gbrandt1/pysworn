@@ -29,7 +29,13 @@ pysworn-datasworn = { workspace = true }
 datasworn = { path = "../datasworn/pkg/python/datasworn" }
 
 [tool.uv.workspace]
-members = ["datasworn", "reference", "journal", "renderables"]
+members = [
+    "datasworn",
+    "reference",
+    "journal",
+    "renderables",
+    "world",
+]
 
 [tool.uv.build-backend]
 source-include = ["**"]

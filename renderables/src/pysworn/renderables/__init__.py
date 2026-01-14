@@ -1,4 +1,5 @@
 from pysworn.renderables.renderables import (
+    RENDERABLE_TYPES,
     AssetAbilityRenderable,
     AssetRenderable,
     AtlasEntryRenderable,
@@ -29,13 +30,13 @@ def get_renderable(id_: str):
 
     obj = index[id_]
     rule_type = id_.split(":")[0]
-    renderable = RENDERABLES.get(rule_type)
+    renderable = RENDERABLE_KEYS.get(rule_type)
     if not renderable:
         return Pretty(obj, max_depth=2, expand_all=True)
     return renderable(obj)
 
 
-RENDERABLES = {
+RENDERABLE_KEYS: dict[str, type] = {
     "asset": AssetRenderable,
     "asset.ability": AssetAbilityRenderable,
     "asset.ability.move": MoveRenderable,
@@ -79,5 +80,27 @@ RENDERABLES = {
 
 __all__ = [
     "get_renderable",
-    "RENDERABLES",
+    "RENDERABLE_KEYS",
+    "RENDERABLE_TYPES",
+    "AssetAbilityRenderable",
+    "AssetRenderable",
+    "AtlasEntryRenderable",
+    "CategoryRenderable",
+    "CollectionRenderable",
+    "DelveSiteDenizenRenderable",
+    "DelveSiteDomainRenderable",
+    "DelveSiteFeatureRenderable",
+    "DelveSiteRenderable",
+    "DelveSiteThemeRenderable",
+    "MoveRenderable",
+    # "NpcCollectionRenderable",
+    "NpcRenderable",
+    "NpcVariantRenderable",
+    "OracleRollableRenderable",
+    "OracleRollableRowRenderable",
+    "RarityRenderable",
+    "RuleSetRenderable",
+    "RulesRenderable",
+    "TruthOptionRenderable",
+    "TruthRenderable",
 ]

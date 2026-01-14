@@ -1,20 +1,28 @@
 import logging
 import random
-from inspect import getfullargspec, signature
-from typing import Any, TypeAliasType, Union, get_args, get_origin
+import re
+from calendar import c
+from tkinter import E
+from typing import Any
 
 from datasworn.core import datasworn_tree, index
-from pydantic import BaseModel
-from pysworn.renderables import (
-    MoveRenderable,
-)
+from datasworn.core.models import BaseModel
+from pysworn.renderables import RENDERABLE_TYPES
+
+# from pydantic import BaseModel
 from rich import print
+from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.traceback import install
 
+console = Console(force_terminal=True)
 install()
-classic = datasworn_tree["classic"]
+# for k in datasworn_tree:
+#     datasworn_tree[k]
+# classic = datasworn_tree["classic"]
+# classic = datasworn_tree["delve"]
+# datasworn_tree["starforged"]
 
 FORMAT = "%(message)s"
 logging.basicConfig(
@@ -27,38 +35,52 @@ log = logging.getLogger(__name__)
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
 
 
-def find_renderable(obj: object):
-    """Find Renderable by matching type annotation with object class."""
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
-    def _match_typealiastype(tat: TypeAliasType) -> type | None:
-        arg, *_ = get_args(tat.__value__)
-        if get_origin(arg) is Union:
-            for union_arg in get_args(arg):
-                if isinstance(obj, union_arg):
-                    log.debug(f"{obj.__class__} --> {union_arg}")
-                    return union_arg
-        elif isinstance(obj, arg):
-            log.debug(f"{obj.__class__} -->  {arg}")
-            return arg
+
+def basemodel_getattr(self, name):
+    try:
+        contents = object.__getattribute__(self, "contents")
+        if name in contents:
+            return contents[name]
         else:
-            log.debug("Class not found")
-        return None
+            raise AttributeError
+    except AttributeError:
+        pass
+    try:
+        collections = object.__getattribute__(self, "collections")
+        if name in collections:
+            return collections[name]
+        else:
+            raise AttributeError
+    except AttributeError:
+        pass
+    return object.__getattribute__(self, name)
 
-    for cls in MoveRenderable.RENDERABLES.values():
-        params = signature(cls.__init__).parameters
 
-        fullargspec = getfullargspec(cls.__init__)
-        for k, v in fullargspec.annotations.items():
-            if isinstance(v, TypeAliasType):
-                if _match_typealiastype(v):
-                    return cls
-            elif isinstance(v, type):
-                if isinstance(obj, v):
-                    return cls
+setattr(BaseModel, "__getattr__", basemodel_getattr)
+
+
+def basemodel_getitem(self, key):
+    try:
+        return self.contents[key]
+    except Exception:
+        pass
+    try:
+        return self.collections[key]
+    except Exception:
+        pass
+    raise KeyError
+
+
+setattr(BaseModel, "__getitem__", basemodel_getitem)
 
 
 def print_datasworn(obj: BaseModel, *args: Any, **kwargs: Any) -> None:
-    renderable = find_renderable(obj)
+    renderable = RENDERABLE_TYPES.get(type(obj))
     if renderable:
         print(Panel(renderable(obj), width=120))
     else:
@@ -66,8 +88,12 @@ def print_datasworn(obj: BaseModel, *args: Any, **kwargs: Any) -> None:
 
 
 def start_campaign():
-    ironlands = classic.atlas["ironlands"].contents
-    region = random.choice(list(ironlands))
+    classic = datasworn_tree["classic"]
+
+    ironlands = classic.atlas["ironlands"]
+
+    region = random.choice(list(ironlands.contents))
+    print(f"Region: {region.upper()}")
     print_datasworn(ironlands[region])
 
     for truth in classic.truths:
@@ -75,43 +101,26 @@ def start_campaign():
         option = random.choice(classic.truths[truth].options)
         print_datasworn(option)
 
-    asset_ids: list[str] = [i for i in index if i.startswith("asset:")]
+    asset_ids = [i for i in index if i.startswith("asset:")]
 
     for asset_id in random.sample(asset_ids, 3):
         print_datasworn(index[asset_id])
 
+    # return
+
     co = classic.oracles
 
     print(list(co))
-    print(list(co["name"].contents))
 
-    name = co["name"].contents
-    for title, oracle in name.items():
-        row = random.choice(oracle.rows)
-        print(f"{title.upper()}: {row.text}")
+    def roll_oracle_collection(oracle_collection, name):
+        for title, oracle in oracle_collection[name].contents.items():
+            row = random.choice(oracle.rows)
+            print(f"{title.upper()}:")
+            print_datasworn(row)
 
-    print(list(co["character"].contents))
-
-    character = co["character"].contents
-    for title, oracle in character.items():
-        row = random.choice(oracle.rows)
-        print(f"{title.upper()}: {row.text}")
-
-    print(list(co["place"].contents))
-
-    place = co["place"].contents
-    for title, oracle in place.items():
-        row = random.choice(oracle.rows)
-        print(f"{title.upper()}: {row.text}")
-
-    print(list(co["turning_point"].contents))
-
-    turning_point = co["turning_point"].contents
-    for title, oracle in turning_point.items():
-        row = random.choice(oracle.rows)
-        print(f"{title.upper()}: {row.text}")
-
-    print(list(co["turning_point"].contents))
+    for coll in classic.oracles:
+        print(f"--- {coll.title()} ---")
+        roll_oracle_collection(classic.oracles, coll)
 
 
 COMMANDS = {
@@ -193,5 +202,42 @@ def ids():
         print(k, v.__class__)
 
 
+def render_ids():
+    from rich.table import Table
+
+    t = Table()
+    parents: set[tuple[type, type]] = set()
+    for k, v in index.items():
+        if ".row:" in k:
+            continue
+        r_type = None
+        renderable = None
+        for r_type in RENDERABLE_TYPES:
+            if isinstance(v, r_type):
+                renderable = RENDERABLE_TYPES[r_type]
+                break
+
+        parent = type(v).__mro__[1]
+        if not renderable:
+            if parent is not BaseModel:
+                t.add_row(f"{k}", f"{parent}", f"{renderable}", f"{type(v)}")
+                parents.add((parent, type(v)))
+        else:
+            # console.print(f"{k}: {type(v)} ({parent}) --> {r_type} {renderable}")
+            console.print(
+                Panel(
+                    renderable(v),
+                    # width=120,
+                )
+            )
+    print(t)
+    if parents:
+        print(parents)
+
+
 if __name__ == "__main__":
-    main()
+    # print(RENDERABLE_TYPES)
+    # render_ids()
+    # ids()
+
+    start_campaign()
