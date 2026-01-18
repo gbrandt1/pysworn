@@ -1,0 +1,22 @@
+[project]
+name = "repl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
+requires-python = ">=3.14"
+dependencies = [
+    "textual-autocomplete>=4.0.6",
+]
+
+[tool.uv.build-backend]
+module-name = "pysworn.repl"
+
+[build-system]
+requires = ["uv_build>=0.9.18,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "textual-dev>=1.8.0",
+]

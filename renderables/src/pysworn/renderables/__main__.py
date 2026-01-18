@@ -1,70 +1,102 @@
 import logging
-import re
+from calendar import c
 from typing import Annotated
 
 import typer
-from datasworn.core import datasworn_tree, index
+from datasworn.core import datasworn_tree
 from rich import print
 from rich.columns import Columns
 from rich.console import RenderableType
 from rich.panel import Panel
 
-app = typer.Typer()
+from . import RENDERABLE_KEYS, RenderableKeyEnum, RuleSetRenderable
 
-logging.basicConfig(level=logging.INFO)
+app = typer.Typer(
+    # callback=callback,
+    no_args_is_help=True,
+)
+
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
-
+logging.getLogger("markdown_it").setLevel(logging.WARNING)
 # trigger lazy loading
 
-# for k in datasworn_tree:
-#     print(k)
-#     datasworn_tree[k]
+for k in datasworn_tree:
+    print(k)
+    datasworn_tree[k]
 # datasworn_tree["classic"]
 # datasworn_tree["delve"]
-datasworn_tree["starforged"]
+# datasworn_tree["starforged"]
 # datasworn_tree["starsmith"]
 # datasworn_tree["sundered_isles"]
 # datasworn_tree["ancient_wonders"]
 # datasworn_tree["fe_runners"]
 
+index = datasworn_tree.index
+
 
 @app.command()
-def main(
-    prefix: Annotated[str, typer.Option("--prefix")] = "",
+def types():
+    from inspect import getfullargspec
+
+    from rich.table import Table
+
+    t = Table.grid(padding=(0, 1), pad_edge=False)
+    for k, v in RENDERABLE_KEYS.items():
+        fullargspec = getfullargspec(v.__init__).annotations.values()
+        if fullargspec:
+            target = list(fullargspec)[0]
+        else:
+            target = None
+        t.add_row(k, f"{v.__name__}", f"{target}")
+
+    print(t)
+
+
+@app.command("print")
+def print_(
+    prefix: Annotated[
+        RenderableKeyEnum,
+        typer.Option(
+            "--prefix",
+        ),
+    ] = RenderableKeyEnum.RULESETS,
     debug: Annotated[bool, typer.Option("--debug", "-d")] = False,
     panel: Annotated[bool, typer.Option("--panel", "-p")] = False,
     no_rows: Annotated[bool, typer.Option("--no-rows", "-r")] = False,
     columns: Annotated[bool, typer.Option("--columns", "-c")] = False,
 ):
-    from pysworn.renderables import RENDERABLES
+    log.debug(f"prefix: {prefix.value}")
 
-    # print(index.keys())
-
-    if prefix == "rules":
-        renderable = RENDERABLES["rules"]
-        for ruleset in rules:
+    if prefix.value == "rulesets":
+        renderable = RuleSetRenderable
+        for ruleset in datasworn_tree:
             print(
                 Panel(
-                    renderable(rules[ruleset].rules),
-                    title=f"[dim]{ruleset} {prefix.upper()}",
+                    renderable(datasworn_tree[ruleset]),
+                    title=f"[dim]{ruleset} {prefix.value.upper()}",
                     title_align="left",
                     border_style="dim",
                     # width=80,
                 )
             )
+        return
+
     renderables: list[RenderableType] = []
     for link, v in index.items():
         if ":" not in link:
             continue
-        rule_type = link.split(":")[0]
-        if len(prefix) > 0 and rule_type != prefix:
+        rule_key = link.split(":")[0]
+        if prefix != RenderableKeyEnum.ALL and rule_key != prefix.value:
             # print(rule_type)
             continue
-        if no_rows and rule_type.endswith(".row"):
+        if no_rows and rule_key.endswith(".row"):
             continue
-        renderable = RENDERABLES.get(rule_type)
+        log.debug(f"rule_key: {rule_key}")
+        renderable = RENDERABLE_KEYS.get(rule_key)
         if debug:
             print(f"[i dim]{link}[/] --> {renderable} {type(index[link]).__name__}")
+            # continue
         if renderable:
             if panel:
                 renderables.append(

@@ -1,4 +1,6 @@
-from pysworn.renderables.renderables import (
+import enum
+
+from .renderables import (
     RENDERABLE_TYPES,
     AssetAbilityRenderable,
     AssetRenderable,
@@ -21,20 +23,8 @@ from pysworn.renderables.renderables import (
     RulesRenderable,
     TruthOptionRenderable,
     TruthRenderable,
+    get_renderable,
 )
-
-
-def get_renderable(id_: str):
-    from pysworn.datasworn import index
-    from rich.pretty import Pretty
-
-    obj = index[id_]
-    rule_type = id_.split(":")[0]
-    renderable = RENDERABLE_KEYS.get(rule_type)
-    if not renderable:
-        return Pretty(obj, max_depth=2, expand_all=True)
-    return renderable(obj)
-
 
 RENDERABLE_KEYS: dict[str, type] = {
     "asset": AssetRenderable,
@@ -74,9 +64,54 @@ RENDERABLE_KEYS: dict[str, type] = {
     "truth.option.oracle_rollable": OracleRollableRenderable,
     "truth.option.oracle_rollable.row": OracleRollableRowRenderable,
     "rules": RulesRenderable,
-    #
+    # special keys
     "category": CategoryRenderable,
 }
+
+
+class RenderableKeyEnum(enum.Enum):
+    ASSET = "asset"
+    ASSET_ABILITY = "asset.ability"
+    ASSET_ABILITY_MOVE = "asset.ability.move"
+    ASSET_ABILITY_ORACLE_ROLLABLE = "asset.ability.oracle_rollable"
+    ASSET_ABILITY_ORACLE_ROLLABLE_ROW = "asset.ability.oracle_rollable.row"
+    ASSET_COLLECTION = "asset_collection"
+    ATLAS_COLLECTION = "atlas_collection"
+    ATLAS_ENTRY = "atlas_entry"
+    CLASSIC = "classic"
+    DELVE = "delve"
+    DELVE_SITE = "delve_site"
+    DELVE_SITE_DENIZEN = "delve_site.denizen"
+    DELVE_SITE_DOMAIN = "delve_site_domain"
+    DELVE_SITE_DOMAIN_DANGER = "delve_site_domain.danger"
+    DELVE_SITE_DOMAIN_FEATURE = "delve_site_domain.feature"
+    DELVE_SITE_THEME = "delve_site_theme"
+    DELVE_SITE_THEME_DANGER = "delve_site_theme.danger"
+    DELVE_SITE_THEME_FEATURE = "delve_site_theme.feature"
+    MOVE = "move"
+    MOVE_ORACLE_ROLLABLE = "move.oracle_rollable"
+    MOVE_ORACLE_ROLLABLE_ROW = "move.oracle_rollable.row"
+    MOVE_CATEGORY = "move_category"
+    NPC = "npc"
+    NPC_VARIANT = "npc.variant"
+    NPC_COLLECTION = "npc_collection"
+    ORACLE_COLLECTION = "oracle_collection"
+    ORACLE_ROLLABLE = "oracle_rollable"
+    ORACLE_ROLLABLE_ROW = "oracle_rollable.row"
+    RARITY = "rarity"
+    STARFORGED = "starforged"
+    STARSMITH = "starsmith"
+    SUNDERED_ISLES = "sundered_isles"
+    TRUTH = "truth"
+    TRUTH_OPTION = "truth.option"
+    TRUTH_OPTION_ORACLE_ROLLABLE = "truth.option.oracle_rollable"
+    TRUTH_OPTION_ORACLE_ROLLABLE_ROW = "truth.option.oracle_rollable.row"
+    RULES = "rules"
+    # special keys
+    CATEGORY = "category"
+    ALL = "all"
+    RULESETS = "rulesets"
+
 
 __all__ = [
     "get_renderable",

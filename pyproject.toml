@@ -35,6 +35,7 @@ members = [
     "journal",
     "renderables",
     "world",
+    "repl",
 ]
 
 [tool.uv.build-backend]
