@@ -6,8 +6,8 @@ from typing import Any
 from webbrowser import get
 
 import typer
-from datasworn.core import datasworn_tree
 from datasworn.core.models import BaseModel
+from pysworn.common import datasworn_tree
 from pysworn.renderables import RENDERABLE_TYPES, get_renderable
 from rich import print
 from rich.console import Console
@@ -314,12 +314,18 @@ def render_ids():
 @app.command()
 def ids():
     for k, v in index.items():
-        print(k, v.__class__)
+        # print(k, v.__class__)
+        if ":" not in k:
+            print(k)
+            continue
+        print(k.split(":")[1].replace("/", " "))
 
 
 @app.command()
 def show_tree():
-    print(datasworn_tree.root)
+    for k in datasworn_tree:
+        print(datasworn_tree[k])
+    # print(datasworn_tree)
 
 
 if __name__ == "__main__":

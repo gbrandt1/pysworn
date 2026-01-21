@@ -6,6 +6,8 @@ readme = "README.md"
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.14"
 dependencies = [
+    "pysworn-common",
+    "pysworn-renderables",
     "textual-autocomplete>=4.0.6",
 ]
 
@@ -17,6 +19,8 @@ requires = ["uv_build>=0.9.18,<0.10.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
-dev = [
-    "textual-dev>=1.8.0",
-]
+dev = ["textual-dev>=1.8.0"]
+
+[tool.uv.sources]
+pysworn-common = { workspace = true }
+pysworn-renderables = { workspace = true, editable = true }
