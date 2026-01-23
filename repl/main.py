@@ -318,7 +318,19 @@ def ids():
         if ":" not in k:
             print(k)
             continue
-        print(k.split(":")[1].replace("/", " "))
+        tag, path = k.split(":")
+        if "." in path:
+            continue
+        if "." in tag:
+            tag = tag.split(".")[0]
+        if tag == "oracle_rollable":
+            tag = "oracle"
+        if "_" in tag:
+            continue
+        path = path.split("/")
+        path.insert(1, tag)
+
+        print(" ".join(path))
 
 
 @app.command()

@@ -2,9 +2,9 @@ import logging
 import random
 import re
 from inspect import getfullargspec
-from typing import Any, TypeAliasType, Union, get_args, get_origin
+from itertools import cycle
+from typing import Any, ClassVar, TypeAliasType, Union, get_args, get_origin
 
-from datasworn.core import datasworn_tree
 from datasworn.core.models import (
     Asset,
     AssetAbility,
@@ -12,6 +12,7 @@ from datasworn.core.models import (
     AtlasCollection,
     AtlasEntry,
     BaseModel,
+    ChallengeRank,
     DelveSite,
     DelveSiteDenizen,
     DelveSiteDomain,
@@ -22,10 +23,15 @@ from datasworn.core.models import (
     DelveSiteThemeFeature,
     EmbeddedMove,
     EmbeddedOracleColumnText,
+    EmbeddedOracleRollable,
     EmbeddedOracleTableText,
     Expansion,
-    Move,
+    MoveActionRoll,
     MoveCategory,
+    MoveNoRoll,
+    MoveOutcome,
+    MoveProgressRoll,
+    MoveSpecialTrack,
     Npc,
     NpcCollection,
     NpcVariant,
@@ -34,6 +40,7 @@ from datasworn.core.models import (
     OracleColumnText3,
     OracleRollable,
     OracleRollableRow,
+    OracleRollableRowText,
     OracleTablesCollection,
     OracleTableSharedRolls,
     OracleTableSharedText,
@@ -42,75 +49,128 @@ from datasworn.core.models import (
     OracleTableText2,
     OracleTableText3,
     Rarity,
+    Rules,
     Ruleset,
     Truth,
     TruthOption,
 )
+from pysworn.common import datasworn_tree
 from rich.columns import Columns
-from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
+from rich.console import (
+    Console,
+    ConsoleOptions,
+    ConsoleRenderable,
+    Group,
+    RenderableType,
+    RenderResult,
+)
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
+from rich.table import Table
 from rich.text import Text
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
-
+# from datasworn.src.pysworn.datasworn._datasworn import TaggableNodeType
 
 RENDERABLE_TYPES: dict[type, type] = {}
 
-log.debug("Loading Renderables")
+CHALLENGE_RANK = {
+    ChallengeRank.int_1: "troublesome",
+    ChallengeRank.int_2: "dangerous",
+    ChallengeRank.int_3: "formidable",
+    ChallengeRank.int_4: "extreme",
+    ChallengeRank.int_5: "epic",
+}
 
-# datasworn_tree = DataswornTree()
+log = logging.getLogger(__name__)
+
 index = datasworn_tree.index
+
+
+# Helper Functions
+
+
+def name_or_id(id_: str | None) -> str:
+    if not id_:
+        return ""
+    if obj := index.get(id_, None):
+        if name := getattr(obj, "canonical_name", None):
+            name.replace("Cursed", "🕱 Cursed")
+            return name
+        if name := getattr(obj, "name", None):
+            name.replace("Cursed", "🕱 Cursed")
+            return name
+    return f"*{id_.split('/')[-1].title().replace('_', ' ')}*"
 
 
 def breadcrumbs(id_: str) -> RenderableType:
     if ":" not in id_:
-        return index[id_].name.upper()
-    *path, last = id_.split(":")[1].upper().replace("_", " ").split("/")
+        return index[id_].name
+    *path, last = id_.split(":")[1].title().replace("_", " ").split("/")
     return Group(
-        Markdown(" -> ".join([p for p in path] + [f"**{last}**\n\n"])),
-        Rule(style="dim white"),
+        # Markdown(" -> ".join([p for p in path])),  # + [f"**{last}**\n\n"])),
+        # Rule(style="dim white"),
+        Text.from_markup(f"[b]{name_or_id(id_).upper()}[/]"),
+        "",
     )
 
 
-def get_renderable(obj: BaseModel, *args: Any, **kwargs: Any) -> RenderableType | None:
-    # from rich.pretty import Pretty
+def _render_text_with_embeds(
+    text: str,
+    id_: str | None = None,
+):
+    text_ = re.sub(r"{{.*?}}", "", text)
+    yield Markdown(text_)
 
-    # obj = index[id_]
-    # rule_type = id_.split(":")[0]
-    # renderable = RENDERABLE_KEYS.get(rule_type)
-    # if not renderable:
-    #     return Pretty(obj, max_depth=2, expand_all=True)
-    # return renderable(obj)
+    oracles_ids = re.findall(r"{{(.*?)}}", text)
+    for oracle_id in oracles_ids:
+        id_embed = oracle_id.split(">")[1]
+        if id_embed == id_:
+            yield Markdown(f"- **{oracle_id}**", style="red")
+        elif id_embed not in index:
+            yield Markdown(f"- **{oracle_id}**", style="red")
+        #     yield Markdown(f"- {oracle_id}")
+        # elif oracle := index[id_]:
+        else:
+            yield Panel(get_renderable(index[id_embed]))
+        # else:
+        #     yield Markdown(f"- Oracle {oracle_id} not found")
 
-    # def get_renderable(self) -> RenderableType:
-    # obj = datasworn_tree.index.get(self.id_)
+
+def get_renderable(obj: BaseModel, *args: Any, **kwargs: Any) -> RenderableType | str:
     r_type = type(obj)
-    if r_type in RENDERABLE_TYPES:
-        renderable = RENDERABLE_TYPES.get(r_type)
-    elif r_type.__mro__[1] in RENDERABLE_TYPES:
-        renderable = RENDERABLE_TYPES.get(r_type.__mro__[1])
-    else:
-        renderable = None
-    # group: list[RenderableType | str] = [f"{obj.id} {type(obj).__mro__}"]
+    renderable = RENDERABLE_TYPES.get(r_type, None)
     if renderable:
-        # group.append(Panel(renderable(obj, *args, **kwargs)))
-        return Panel(renderable(obj, *args, **kwargs))
-    # return Group(*group)
-    return None
+        # return Panel(renderable(obj, *args, **kwargs))
+        if source := getattr(obj, "source", None):
+            return Panel(
+                renderable(obj, *args, **kwargs),
+                title=renderable.BORDER_TITLE.upper(),
+                title_align="left",
+                subtitle=f"[{source.title}, {source.page}]",
+                subtitle_align="right",
+                border_style="dim",
+                # width=80,
+            )
+        else:
+            return renderable(obj, *args, **kwargs)
+    return f"No renderable found for {type(obj)} ({getattr(obj, 'id', None)})"
 
 
-class PyswornRenderable:
+class PyswornRenderable(ConsoleRenderable):
+    BORDER_TITLE: ClassVar[str | None] = None
+    MAX_WIDTH: ClassVar[int | None] = None
+
     def __init_subclass__(cls, **kwargs: Any):
         super().__init_subclass__(**kwargs)
 
         fullargspec = getfullargspec(cls.__init__)
-        # log.debug(f"{cls}: {fullargspec}")
         for k, v in fullargspec.annotations.items():
             log.debug(f"{k}: {v.__class__} {v}")
             cls._resolve_type(v)
+
+        if not cls.BORDER_TITLE:
+            cls.BORDER_TITLE = cls.__name__.replace("Renderable", "")
 
     @classmethod
     def _resolve_type(cls, arg: type | TypeAliasType):
@@ -124,11 +184,14 @@ class PyswornRenderable:
         else:
             if v in RENDERABLE_TYPES:
                 raise KeyError(f"Duplicate renderable type: {v}")
-            RENDERABLE_TYPES[v] = cls
-            log.debug(f"{v}: {cls}")
-            # parent = v.__mro__[1]
-            # if parent is not BaseModel:
-            #     RENDERABLE_TYPES[parent] = cls
+            if v.__module__ == "datasworn.core.models":
+                RENDERABLE_TYPES[v] = cls
+                log.debug(f"{v}: {cls}")
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        yield "[red]no renderable implemented[/]"
 
 
 class RuleSetRenderable(PyswornRenderable):
@@ -171,27 +234,20 @@ class CollectionRenderable:
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = f"## {self.collection.name}\n\n"
-        if self.collection.summary:
-            msg += f"{self.collection.summary}\n\n"
+        yield breadcrumbs(self.collection.id)
+        # yield Markdown(f"**{self.collection.name.upper()}**")
 
-        msg += (
-            "Entries: "
-            + ", ".join(
-                [f"[{v.name}]({v.id})" for v in self.collection.contents.values()]
-            )
-            + "\n\n"
-        )
-        collections = []
-        if hasattr(self.collection, "collections") and self.collection.collections:
-            # if self.collection.collections:
+        if summary := getattr(self.collection, "summary", None):
+            yield Markdown(f"**{summary}**")
+            yield ""
+
+        if contents := getattr(self.collection, "contents", None):
+            yield "[cyan]" + " ".join(contents) + "[/]"
+
+        if collections := getattr(self.collection, "collections", None):
             for collection in self.collection.collections.values():
                 collections.append(CollectionRenderable(collection))
-        if len(collections) == 0:
-            yield Markdown(msg)
-        else:
             yield Group(
-                Markdown(msg),
                 Panel(
                     Group(*collections),
                     border_style="dim",
@@ -199,22 +255,16 @@ class CollectionRenderable:
             )
 
 
-class AtlasCollectionRenderable(PyswornRenderable, CollectionRenderable):
+class AtlasCollectionRenderable(CollectionRenderable, PyswornRenderable):
+    BORDER_TITLE = "Atlas"
+
     def __init__(self, collection: AtlasCollection):
         self.collection = collection
 
 
-class MoveCategoryRenderable(PyswornRenderable, CollectionRenderable):
-    def __init__(self, collection: MoveCategory):
-        self.collection = collection
-
-
-class AssetCollectionRenderable(PyswornRenderable, CollectionRenderable):
-    def __init__(self, collection: AssetCollection):
-        self.collection = collection
-
-
 class AtlasEntryRenderable(PyswornRenderable):
+    BORDER_TITLE = "Atlas Entry"
+
     def __init__(self, atlas_entry: AtlasEntry, *args, **kwargs):
         self.atlas_entry = atlas_entry
 
@@ -257,7 +307,16 @@ class AssetRenderable(PyswornRenderable):
             yield AssetAbilityRenderable(ability)
 
 
+class AssetCollectionRenderable(CollectionRenderable, PyswornRenderable):
+    BORDER_TITLE = "Asset Type"
+
+    def __init__(self, collection: AssetCollection):
+        self.collection = collection
+
+
 class DelveSiteRenderable(PyswornRenderable):
+    BORDER_TITLE = "Site"
+
     def __init__(self, delve_site: DelveSite):
         self.delve_site = delve_site
 
@@ -265,16 +324,17 @@ class DelveSiteRenderable(PyswornRenderable):
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
         yield breadcrumbs(self.delve_site.id)
-        # msg = f"{self.delve_site.category.upper()} \n{self.delve_site.name.upper()}\n"
-        theme = index[self.delve_site.theme].name
-        domain = index[self.delve_site.domain].name
-        region = index[self.delve_site.region].name
-        msg = f"{theme} {domain} in the {region}. "
-        msg += f"Rank: {self.delve_site.rank}\n\n"
+        yield Markdown(f"**Rank:** {CHALLENGE_RANK[self.delve_site.rank].title()}")
+        yield Markdown(f"**Theme:** {name_or_id(self.delve_site.theme)}")
+        yield Markdown(f"**Domain:** {name_or_id(self.delve_site.domain)}")
+        yield Markdown(f"Region: {name_or_id(self.delve_site.region)}")
+        yield ""
+
+        yield Markdown(self.delve_site.description)
         # denizens = ["| Roll | Frequency | NPC | Name |\n| --- | --- | --- | --- |\n"]
-        denizens = "Denizens\n\nRoll | Frequency | NPC | Name\n---|---|---|---\n"
+        denizens = "Roll | Frequency | NPC | Name\n---|---|---|---\n"
         for denizen in self.delve_site.denizens:
-            denizens += str(DelveSiteDenizenRenderable(denizen))
+            denizens += DelveSiteDenizenRenderable(denizen)._render()
         yield Markdown(denizens)
 
 
@@ -282,56 +342,21 @@ class DelveSiteDenizenRenderable(PyswornRenderable):
     def __init__(self, denizen: DelveSiteDenizen):
         self.denizen = denizen
 
-    def __str__(self):
-        roll = f"{self.denizen.roll.min}-{self.denizen.roll.max} "
-        msg = f"{roll:^7} "
-        msg += f"| {self.denizen.frequency} "
-        if self.denizen.npc:
-            npc = index[self.denizen.npc].name
-            msg += f"| {npc} "
-        if self.denizen.name:
-            msg += f"| {self.denizen.name} "
+    def _render(self):
+        min_ = getattr(self.denizen.roll, "min", "")
+        max_ = getattr(self.denizen.roll, "max", "")
+        roll = f"{min_}-{max_}"
+        frequency = self.denizen.frequency.name.replace("_", " ")
+        npc = name_or_id(self.denizen.npc)
+        name = self.denizen.name if self.denizen.name else ""
 
-        return msg + "\n"
+        return f"{roll:^8} |  {frequency} | {npc} |{name}\n"
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        yield Markdown(str(self))
-
-
-class DelveSiteThemeRenderable(PyswornRenderable):
-    def __init__(self, theme: DelveSiteTheme):
-        self.theme = theme
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        yield breadcrumbs(self.theme.id)
-        dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
-        for danger in self.theme.dangers:
-            dangers.append(DelveSiteFeatureRenderable(danger))
-        features: list[RenderableType] = [Markdown("## Features\n\n")]
-        for feature in self.theme.features:
-            features.append(DelveSiteFeatureRenderable(feature))
-        yield Group(*dangers, *features)
-
-
-class DelveSiteDomainRenderable(PyswornRenderable):
-    def __init__(self, domain: DelveSiteDomain):
-        self.domain = domain
-
-    def __rich_console__(
-        self, console: Console, options: ConsoleOptions
-    ) -> RenderResult:
-        yield breadcrumbs(self.domain.id)
-        dangers: list[RenderableType] = [Markdown("## Dangers\n\n")]
-        for danger in self.domain.dangers:
-            dangers.append(DelveSiteFeatureRenderable(danger))
-        features: list[RenderableType] = [Markdown("## Features\n\n")]
-        for feature in self.domain.features:
-            features.append(DelveSiteFeatureRenderable(feature))
-        yield Group(*dangers, *features)
+        # roll, frequency, npc, name = self._render()
+        yield Markdown(self._render())
 
 
 class DelveSiteFeatureRenderable(PyswornRenderable):
@@ -347,29 +372,123 @@ class DelveSiteFeatureRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = f"{self.feature.roll.min}-{self.feature.roll.max}: {self.feature.text} "
-        yield Markdown(msg)
+        roll, text = self._render()
+        yield f"{roll:^8}{text}"
+
+    def _render(self):
+        min_ = getattr(self.feature.roll, "min", "")
+        max_ = getattr(self.feature.roll, "max", "")
+        return (
+            f"{min_}-{max_}",
+            f"{self.feature.text}",
+        )
 
 
-class MoveRenderable(PyswornRenderable):
+class DelveSiteDomainOrThemeRenderable(PyswornRenderable):
+    # def __init__(self, theme: DelveSiteTheme | DelveSiteDomain):
+    #     self.domain_or_theme = theme
+    #     if isinstance(theme, DelveSiteTheme):
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        yield breadcrumbs(self.domain_or_theme.id)
+        yield Markdown(getattr(self.domain_or_theme, "summary", ""))
+        yield Markdown(getattr(self.domain_or_theme, "description", ""))
+
+        yield ""
+        yield Markdown("**FEATURES**")
+        for feature in self.domain_or_theme.features:
+            yield DelveSiteFeatureRenderable(feature)
+
+        yield ""
+        yield Markdown("**DANGERS**")
+        for danger in self.domain_or_theme.dangers:
+            yield DelveSiteFeatureRenderable(danger)
+
+
+class DelveSiteThemeRenderable(DelveSiteDomainOrThemeRenderable):
+    BORDER_TITLE = "Theme"
+
+    def __init__(self, domain: DelveSiteTheme):
+        self.domain_or_theme = domain
+
+
+class DelveSiteDomainRenderable(DelveSiteDomainOrThemeRenderable):
+    BORDER_TITLE = "Domain"
+
+    def __init__(self, theme: DelveSiteDomain):
+        self.domain_or_theme = theme
+
+
+class MoveOutcomeRenderable(PyswornRenderable):
     def __init__(
         self,
-        move: Move | EmbeddedMove,
-        *,
-        outcome: str | None = None,
-        **kwargs,
+        outcome: MoveOutcome,
     ):
-        self.move = move
         self.outcome = outcome
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
+        yield breadcrumbs(self.outcome.id)
+        yield Markdown(self.outcome.text)
+
+
+class MoveRenderable(PyswornRenderable):
+    def __init__(
+        self,
+        move: MoveActionRoll
+        | MoveNoRoll
+        | MoveProgressRoll
+        | MoveSpecialTrack
+        | EmbeddedMove,
+        *,
+        outcome: str | None = None,
+        **kwargs,
+    ):
+        self.move = move
+        # self.outcome = outcome
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
         yield breadcrumbs(self.move.id)
-        if not self.outcome:
-            yield Markdown(self.move.text)
-        else:
-            yield Markdown(getattr(self.move.outcomes, self.outcome).text)
+        if isinstance(self.move, MoveProgressRoll) or isinstance(
+            self.move, MoveSpecialTrack
+        ):
+            yield "[b i]Progress Move[/]\n"
+
+        yield from _render_text_with_embeds(self.move.text, self.move.id)
+
+        # if self.outcome:
+        # yield Markdown(getattr(self.move.outcomes, self.outcome).text)
+        # yield
+
+
+class MoveCategoryRenderable(CollectionRenderable, PyswornRenderable):
+    BORDER_TITLE = "Moves"
+
+    def __init__(self, collection: MoveCategory):
+        self.collection = collection
+
+
+# for Starforged
+NPC_CHALLENGE_RANK_STARFORGED = {
+    ChallengeRank.int_1: "⬢⬡⬡⬡⬡",
+    ChallengeRank.int_2: "⬢⬢⬡⬡⬡",
+    ChallengeRank.int_3: "⬢⬢⬢⬡⬡",
+    ChallengeRank.int_4: "⬢⬢⬢⬢⬡",
+    ChallengeRank.int_5: "⬢⬢⬢⬢⬢",
+}
+# Classic
+NPC_CHALLENGE_RANK = {
+    ChallengeRank.int_1: "Troublesome (3 progress per harm; inflicts 1 harm)",
+    ChallengeRank.int_2: "Dangerous (2 progress per harm; inflicts 2 harm)",
+    ChallengeRank.int_3: "Formidable (1 progress per harm; inflicts 3 harm)",
+    ChallengeRank.int_4: "Extreme (2 ticks per harm; inflicts 4 harm)",
+    ChallengeRank.int_5: "Epic (1 tick per harm; inflicts 5 harm)",
+}
 
 
 class NpcVariantRenderable(PyswornRenderable):
@@ -379,21 +498,35 @@ class NpcVariantRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = f"**{self.npc.name}** {self.npc.nature} Rank {self.npc.rank}\n\n"
-        for attr in ("drives", "features", "tactics"):
-            if hasattr(self.npc, attr) and getattr(self.npc, attr):
-                msg += f"### {attr.title()}\n\n"
-                for item in getattr(self.npc, attr):
-                    msg += f"- {item}\n"
+        yield breadcrumbs(self.npc.id)
+        # yield f"{self.npc.nature}"
 
-        if self.npc.summary:
-            msg += f"{self.npc.summary}\n\n"
-        if hasattr(self.npc, "description") and self.npc.description:
-            msg += f"{self.npc.description}\n\n"
-        if hasattr(self.npc, "quest_starter") and self.npc.quest_starter:
-            msg += f"> *{self.npc.quest_starter}*\n\n"
+        if "starforged" in self.npc.id:
+            yield NPC_CHALLENGE_RANK_STARFORGED[self.npc.rank]
+        else:
+            yield (Rule(style="white"))
+            yield Markdown(f"**Rank:** {NPC_CHALLENGE_RANK[self.npc.rank]}\n\n")
+        for feature in ("features", "drives", "tactics"):
+            if attrs := getattr(self.npc, feature, None) is None:
+                continue
+            yield (Rule(style="dim white"))
+            yield Markdown(f"**{feature.title()}:**")
+            yield Markdown(
+                "".join(f"- {item}\n" for item in getattr(self.npc, feature))
+            )
+        yield (Rule(style="white"))
 
-        yield Markdown(msg)
+        if summary := self.npc.summary:
+            yield Markdown(f"**{summary}**")
+
+        if description := getattr(self.npc, "description"):
+            yield Markdown(description)
+
+        if quest_starter := getattr(self.npc, "quest_starter", None):
+            yield Markdown(f"> *Quest Starter: {quest_starter}*")
+
+        if your_truth := getattr(self.npc, "your_truth", None):
+            yield Panel(Markdown(f"\n\n**YOUR TRUTH**\n\n**{your_truth}**\n"))
 
 
 class NpcRenderable(PyswornRenderable):
@@ -403,26 +536,24 @@ class NpcRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = breadcrumbs(self.npc.id)
-        variants = [NpcVariantRenderable(self.npc)]
+        yield NpcVariantRenderable(self.npc)
         for variant in self.npc.variants.values():
-            variants.append(NpcVariantRenderable(variant))
-        yield Group(Markdown(msg), *variants)
+            yield Panel(NpcVariantRenderable(variant))
 
 
-class NpcCollectionRenderable(PyswornRenderable, CollectionRenderable):
+class NpcCollectionRenderable(CollectionRenderable, PyswornRenderable):
     def __init__(self, collection: NpcCollection):
         self.collection = collection
 
 
 class OracleTablesCollectionRenderable(PyswornRenderable):
+    BORDER_TITLE = "Oracles"
+
     def __init__(
         self,
         collection: OracleTablesCollection,
-        # | OracleTableSharedText
-        # | OracleTableSharedText2,
         *,
-        roll=str | None,
+        roll: str | None = None,
     ):
         self.collection = collection
         self.roll = roll
@@ -431,76 +562,47 @@ class OracleTablesCollectionRenderable(PyswornRenderable):
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
         yield breadcrumbs(self.collection.id)
-        # f"## {self.collection.name}\n\n"
-        if self.collection.summary:
-            yield Markdown(f"{self.collection.summary}\n")
+        if summary := self.collection.summary:
+            yield Markdown(summary)
 
-        if self.roll is not None:
-            for oracle in self.collection.contents.values():
-                yield OracleRollableRenderable(oracle, roll="")
-            return
+        if contents := getattr(self.collection, "contents", None):
+            yield ""
+            yield "[cyan]" + ", ".join(contents) + "[/]"
 
-        yield Markdown(
-            "Oracles: "
-            + ", ".join(
-                [f"[{v.name}]({v.id})" for v in self.collection.contents.values()]
-            )
-            + "\n\n"
-        )
-        collections = []
-        if hasattr(self.collection, "collections") and self.collection.collections:
-            for collection in self.collection.collections.values():
-                collections.append(OracleTablesCollectionRenderable(collection))
-        if len(collections) > 0:
-            yield Panel(
-                Group(*collections),
-                border_style="dim",
-            )
+        if collections := getattr(self.collection, "collections", None):
+            yield ""
+            yield "[cyan]" + ", ".join(collections) + "[/]"
 
 
-class OracleTablesSharedRenderable(PyswornRenderable):
+class OracleTableSharedRenderable(PyswornRenderable):
+    BORDER_TITLE = "Oracles"
+
     def __init__(
         self,
-        collection: OracleTableSharedRolls
-        | OracleTableSharedText
-        | OracleTableSharedText2,
-        *,
-        roll=None,
+        collection: OracleTableSharedText
+        | OracleTableSharedText2
+        | OracleTableSharedRolls,
     ):
-        self.collection = collection
-        self.roll = roll
+        self.shared = collection
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = f"## {self.collection.name}\n\n"
-        if self.collection.summary:
-            msg += f"{self.collection.summary}\n\n"
+        yield breadcrumbs(self.shared.id)
+        if summary := self.shared.summary:
+            yield Markdown(summary)
 
-        msg += (
-            "Oracles: "
-            + ", ".join(
-                [f"[{v.name}]({v.id})" for v in self.collection.contents.values()]
-            )
-            + "\n\n"
+        yield Columns(
+            [
+                OracleRollableRenderable(oracle)
+                for oracle in self.shared.contents.values()
+            ]
         )
-        collections = []
-        if hasattr(self.collection, "collections") and self.collection.collections:
-            for collection in self.collection.collections.values():
-                collections.append(CollectionRenderable(collection))
-        if len(collections) == 0:
-            yield Markdown(msg)
-        else:
-            yield Group(
-                Markdown(msg),
-                Panel(
-                    Group(*collections),
-                    border_style="dim",
-                ),
-            )
 
 
 class OracleRollableRenderable(PyswornRenderable):
+    BORDER_TITLE = "Oracle"
+
     def __init__(
         self,
         table: OracleRollable
@@ -510,10 +612,11 @@ class OracleRollableRenderable(PyswornRenderable):
         | OracleColumnText
         | OracleColumnText2
         | OracleColumnText3
+        | EmbeddedOracleRollable
         | EmbeddedOracleColumnText
         | EmbeddedOracleTableText,
         *,
-        roll=None,
+        roll: str | None = None,
     ):
         self.table = table
 
@@ -536,17 +639,40 @@ class OracleRollableRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
+        if type(self.table).__name__.startswith("Embedded"):
+            yield breadcrumbs(self.table._id)
+
+        if summary := getattr(self.table, "summary", None):
+            yield Markdown(summary)
+
+        rows = [row._render()[1:] for row in self.rows]
+        row_tables = []
+        row_styles = ["on black", "on gray11"]
+
+        if "adventures" in self.table.id:
+            col_width1 = None
+        else:
+            col_width1 = max(len(row[1]) for row in rows)
+
+        for row, style in zip(rows, cycle(row_styles)):
+            t = Table.grid(padding=(0, 1), pad_edge=False)
+            t.add_column(width=8)
+            t.add_column(width=col_width1)
+            t.add_row(*row, style=style)
+            row_tables.append(t)
+
         yield breadcrumbs(self.table.id)
         yield Columns(
-            [str(row) for row in self.rows],
+            row_tables,
+            # [str(row) for row in self.rows],
             expand=True,
-            equal=True,
+            # equal=True,
             column_first=True,
         )
 
 
 class OracleRollableRowRenderable(PyswornRenderable):
-    def __init__(self, row: OracleRollableRow):
+    def __init__(self, row: OracleRollableRow | OracleRollableRowText):
         self.row = row
 
     def __rich_console__(
@@ -554,7 +680,7 @@ class OracleRollableRowRenderable(PyswornRenderable):
     ) -> RenderResult:
         yield Text.from_markup(str(self))
 
-    def __str__(self):
+    def _render(self):
         roll = self.row.roll
         rtxt = ""
         if roll:
@@ -566,16 +692,53 @@ class OracleRollableRowRenderable(PyswornRenderable):
                 rtxt = f"{roll_min}-{roll_max}"
 
         text = self.row.text
+        text2 = getattr(self.row, "text2", None)
+        text3 = getattr(self.row, "text3", None)
+
         text = re.sub(r"\[(.+?)\]\(.+?\)", (r"\1").upper(), text)
 
-        msg = f"{rtxt:^8} {text}"
-        # msg = f"{rtxt:^7} [link={self.row.id}]{text}[/link]"
+        num = self.row.id.split(".")[-1]
 
-        # if hasattr(self.row, "text2") and self.row.text2:
-        #     msg += f" {self.row.text2}"
-        # if hasattr(self.row, "text3") and self.row.text3:
-        #     msg += f" {self.row.text3}"
-        return msg
+        if "adventures" in self.row.id:
+            if text3:
+                return (
+                    f"[i dim dark_red]{num:<3}[/]",
+                    f"{rtxt:^8}",
+                    Markdown(f"**{text}** {text2}\\\n{text3}"),
+                )
+
+            if text2:
+                return (
+                    f"[i dim dark_red]{num:<3}[/]",
+                    f"{rtxt:^8}",
+                    Markdown(f"**{text}**\\\n{text2}"),
+                )
+        else:
+            if text3:
+                return (
+                    f"[i dim dark_red]{num:<3}[/]",
+                    f"{rtxt:^8}",
+                    text,
+                    text2,
+                    text3,
+                )
+
+            if text2:
+                return (
+                    f"[i dim dark_red]{num:<3}[/]",
+                    f"{rtxt:^8}",
+                    text,
+                    text2,
+                )
+
+        return (
+            f"[i dim dark_red]{num:<3}[/]",
+            f"{rtxt:^8}",
+            f"{text}",
+        )
+
+    def __str__(self):
+        return " ".join(self._render()[1:])
 
 
 class RarityRenderable(PyswornRenderable):
@@ -585,11 +748,14 @@ class RarityRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        asset = index[self.rarity.asset]
         yield breadcrumbs(self.rarity.id)
-        yield f"for {asset.name.upper()} (XP cost: {self.rarity.xp_cost})"
-        if hasattr(self.rarity, "description") and self.rarity.description:
-            yield f"{self.rarity.description}\n\n"
+        asset_type = self.rarity.asset.split("/")[1]
+        yield Markdown(
+            f"{asset_type.upper()}: {name_or_id(self.rarity.asset).upper()} **{self.rarity.xp_cost} XP**\n"
+        )
+        yield ""
+        if description := getattr(self.rarity, "description"):
+            yield Markdown(description)
 
 
 class TruthOptionRenderable(PyswornRenderable):
@@ -599,17 +765,29 @@ class TruthOptionRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = ""
         roll = self.truth.roll
-        msg += f"**{roll.min}-{roll.max}** "
-        if self.truth.summary:
-            msg += f"**{self.truth.summary}**\n\n"
-        # msg += f"{self.truth.description}\n\n"
-        oracles = []
-        for oracle in self.truth.oracles.values():
-            oracles.append(OracleRollableRenderable(oracle))
-        msg2 = f"\n> *{self.truth.quest_starter}*\n\n"
-        yield Group(Markdown(msg), *oracles, Markdown(msg2))
+        summary = getattr(self.truth, "summary", "")
+
+        table = Table.grid()
+        table.add_column(width=8, justify="center")
+        table.add_column()
+
+        table.add_row(f"[b]{roll.min}-{roll.max}[/]", Markdown(f"**{summary}**"))
+        table.add_row("", "")
+
+        if description := getattr(self.truth, "description", None):
+            for d in _render_text_with_embeds(description, self.truth.id):
+                table.add_row("", d)
+
+        # oracles = []
+        # for oracle in self.truth.oracles.values():
+        #     oracles.append(OracleRollableRenderable(oracle))
+
+        table.add_row(
+            "", Markdown(f"\n> *Quest Starter: {self.truth.quest_starter}*\n\n")
+        )
+
+        yield table
 
 
 class TruthRenderable(PyswornRenderable):
@@ -619,19 +797,24 @@ class TruthRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        name = f"# {self.truth.name}"
-        your_character = ""
-        if hasattr(self.truth, "your_character") and self.truth.your_character:
-            your_character = f"> *{self.truth.your_character}*\n\n"
-        options = []
+        yield breadcrumbs(self.truth.id)
+
+        if summary := getattr(self.truth, "summary", None):
+            yield Markdown(summary)
+            yield Rule()
+
         for option in self.truth.options:
-            options.append(TruthOptionRenderable(option))
-            options.append(Rule(style="dim white"))
-        yield Group(Markdown(name), *options, Markdown(your_character))
+            yield TruthOptionRenderable(option)
+            yield Rule(style="dim white")
+
+        if your_character := getattr(self.truth, "your_character", None):
+            yield Markdown(f"♟ {your_character}")
+
+        yield Markdown(f"⚑ {' '.join(faction.text for faction in self.truth.factions)}")
 
 
 class RulesRenderable(PyswornRenderable):
-    def __init__(self, rules):
+    def __init__(self, rules: Rules):
         self.rules = rules
 
     def __rich_console__(

@@ -1,0 +1,38 @@
+[project]
+name = "pysworn-common"
+version = "0.1.0"
+description = "PySworn Common Package"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "datasworn-classic",
+    "datasworn-community-content-ancient-wonders",
+    "datasworn-community-content-fe-runners",
+    "datasworn-community-content-starsmith",
+    "datasworn-core",
+    "datasworn-delve",
+    "datasworn-starforged",
+    "datasworn-sundered-isles",
+    "rich>=14.2.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.uv.build-backend]
+module-name = "pysworn.common"
+
+
+[tool.uv.sources]
+datasworn-classic = { path = "../../datasworn_tbsvttr/pkg/python/datasworn/src/datasworn/classic", editable = true }
+datasworn-core = { path = "../../datasworn_tbsvttr/pkg/python/datasworn/src/datasworn/core", editable = true }
+datasworn-delve = { path = "../../datasworn_tbsvttr/pkg/python/datasworn/src/datasworn/delve", editable = true }
+datasworn-starforged = { path = "../../datasworn_tbsvttr/pkg/python/datasworn/src/datasworn/starforged", editable = true }
+datasworn-sundered-isles = { path = "../../datasworn_tbsvttr/pkg/python/datasworn/src/datasworn/sundered_isles", editable = true }
+datasworn-community-content-ancient-wonders = { path = "../../datasworn_tbsvttr/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders", editable = true }
+datasworn-community-content-fe-runners = { path = "../../datasworn_tbsvttr/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners", editable = true }
+datasworn-community-content-starsmith = { path = "../../datasworn_tbsvttr/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith", editable = true }
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
