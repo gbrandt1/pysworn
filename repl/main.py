@@ -1,8 +1,12 @@
 import fnmatch
 import logging
 import random
-from collections import UserDict
-from typing import Any
+from calendar import c
+from collections import ChainMap, UserDict
+from collections.abc import Mapping
+from encodings.punycode import T
+from string import Template
+from typing import Any, Generic
 from webbrowser import get
 
 import typer
@@ -42,14 +46,15 @@ class Collection(UserDict):
         self.id = f"collection:{ruleset}/{name}"
 
 
-for ruleset in datasworn_tree:
-    for k, v in vars(datasworn_tree[ruleset]).items():
-        if isinstance(v, dict):
-            c = Collection(k, ruleset)
-            # setattr(datasworn_tree[ruleset], k, c)
-            # datasworn_tree.index[c.id] = c
+# for ruleset in datasworn_tree:
+#     for k, v in vars(datasworn_tree[ruleset]).items():
+#         if isinstance(v, dict):
+#             c = Collection(k, ruleset)
 
-# datasworn_tree = DataswornTree()
+# setattr(datasworn_tree[ruleset], k, c)
+# datasworn_tree.index[c.id] = c
+
+
 index = datasworn_tree.index
 
 
@@ -313,6 +318,11 @@ def render_ids():
 
 @app.command()
 def ids():
+    for k in index:
+        print(k)
+
+    return
+
     for k, v in index.items():
         # print(k, v.__class__)
         if ":" not in k:
@@ -337,15 +347,37 @@ def ids():
 def show_tree():
     for k in datasworn_tree:
         print(datasworn_tree[k])
-    # print(datasworn_tree)
+
+
+@app.command("map")
+def map_():
+    merged_dict = get_merged_dict()
+    print(merged_dict)
+
+    def _print_recursive(d: dict[str, Any], path: str = ""):
+        for k, v in d.items():
+            path_ = f"{path} {k}"
+            print(path_)
+            if isinstance(v, Template):
+                for c in chain:
+                    id_ = v.substitute(ruleset=c)
+                    obj = index.get(id_, None)
+                    if obj:
+                        console.print(get_renderable(obj))
+            else:
+                _print_recursive(v, path_)
+
+    _print_recursive(merged_dict)
 
 
 if __name__ == "__main__":
-    # print(RENDERABLE_TYPES)
-    # render_ids()
-    # ids()
+    # datasworn_tree["classic"]
+    # datasworn_tree["delve"]
+    datasworn_tree["starforged"]
+    datasworn_tree["sundered_isles"]
+    datasworn_tree["ancient_wonders"]
 
-    # start_campaign()
-    # show_tree()
-    # main()
+    # for k in datasworn_tree:
+    #     datasworn_tree[k]
+
     app()

@@ -1488,6 +1488,7 @@ class Rarity(BaseModel):
     images: list[WebpImageUrl] | None = ...
     icon: Annotated[str | None, Field(description='An SVG icon associated with this collection.', pattern='\\.svg$', title='SvgImageUrl'),] = ...
     asset: Annotated[str, Field(description='The asset augmented by this rarity.', pattern='^asset:([a-z][a-z0-9_]*(?:\\/[a-z][a-z0-9_]*){2,5})$', title='AssetId'),]
+    description: Annotated[str, Field(description='A description of this rarity.', title='MarkdownString')]
     xp_cost: Annotated[int, Field(description='From Ironsworn: Delve, p. 174:\n\n      Some assets will bring a rarity into play more often than others, so the experience point cost for a rarity will vary by the linked asset. These costs are shown in the tables on page 175.\n\n      If you are playing solo, and aren’t concerned with the relative balance of rarity abilities, you can ignore these variable costs. If so, spend 3 experience points to purchase a rarity.', ge=3, le=5),]
     type: Literal['rarity']
 

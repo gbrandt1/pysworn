@@ -1,7 +1,7 @@
 import datetime
 import enum
 import logging
-from collections import OrderedDict
+from collections import ChainMap, OrderedDict
 from collections.abc import Mapping
 from importlib.resources import files
 from typing import Any
@@ -10,8 +10,13 @@ from datasworn.core.models import Expansion, Ruleset
 from pydantic import AnyUrl, BaseModel
 from rich import print
 
+# from rich.logging import RichHandler
+# FORMAT = "%(message)s"
+# logging.basicConfig(
+#     level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+# )
+
 log = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.DEBUG)
 
 DATASWORN_JSON_SOURCES: dict[str, tuple[str, type[Expansion] | type[Ruleset]]] = {
     "classic": ("datasworn", Ruleset),
@@ -35,7 +40,7 @@ class DataswornTree(Mapping[str, Any]):
 
     def __getitem__(self, name: str):
         if name not in self._json_sources:
-            msg = f"Source must be one of {list(self._json_sources.keys())}"
+            msg = f"Source must be one of {list(self._json_sources.keys())} not {name}."
             raise KeyError(msg)
         if name not in self._sources:
             self._load_source(name, *self._json_sources.__getitem__(name))
@@ -56,7 +61,11 @@ class DataswornTree(Mapping[str, Any]):
         self._build_human_index()
         log.debug(f"Loaded {name}")
 
-    def _build_index(self, obj: BaseModel | dict[str, Any] | list[Any]) -> int:
+    def _build_index(
+        self,
+        obj: BaseModel | dict[str, Any] | list[Any],
+        path: str = "",
+    ) -> int:
         """Datasworn ids --> Datasworn objects"""
         num = 0
         match obj:
@@ -68,18 +77,30 @@ class DataswornTree(Mapping[str, Any]):
                     self.index[_id] = obj
 
                     num += 1
-                for _, v in obj:
-                    self._build_index(v)
+                for k, v in obj:
+                    self._build_index(v, path=f"{path}.{k}")
             case dict():
-                for v in obj.values():
-                    self._build_index(v)
+                # last = path.split(".")[-1]
+                # if last not in (
+                #     "contents",
+                #     "collections",
+                #     "oracles",
+                #     "controls",
+                #     "variants",
+                #     "moves",
+                #     "options",
+                #     "trigger",
+                # ):
+                #     log.debug(f"{path}: {type(obj)}")
+                for k, v in obj.items():
+                    self._build_index(v, path=f"{path}['{k}']")
             case list():
-                for v in obj:
-                    self._build_index(v)
+                for k, v in enumerate(obj):
+                    self._build_index(v, path=f"{path}[{k}]")
             case int() | str() | None | datetime.date() | enum.Enum() | AnyUrl():
                 pass
             case _:
-                log.error(f"Unknown type: {type(obj)}")
+                log.error(f"{path}: Unknown type: {type(obj)}")
         return num
 
     def _build_human_index(self):
@@ -104,6 +125,12 @@ class DataswornTree(Mapping[str, Any]):
 
 datasworn_tree = DataswornTree()
 
+
 if __name__ == "__main__":
-    for k in datasworn_tree:
-        print(datasworn_tree[k])
+    from rich.console import Console
+
+    console = Console(force_terminal=True)
+    # for k in datasworn_tree:
+    k = "starforged"
+    t = datasworn_tree[k]
+    console.print(t)

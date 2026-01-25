@@ -39,10 +39,10 @@ log = logging.getLogger(__name__)
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
 # trigger lazy loading
 
-# for k in datasworn_tree:
-#     datasworn_tree[k]
+for k in datasworn_tree:
+    datasworn_tree[k]
 
-datasworn_tree["sundered_isles"]
+# datasworn_tree["sundered_isles"]
 
 t = Table.grid(padding=(0, 1), pad_edge=False)
 index = datasworn_tree.index
@@ -189,13 +189,16 @@ def print_(
         if r_type:
             renderable: RenderableType = r_type(index[link])
             if panel:
-                renderable = Panel(
-                    renderable,
-                    title=f"[dim]{prefix.value.upper()}",
-                    title_align="left",
-                    border_style="dim",
-                    width=80,
-                )
+                renderable = get_renderable(index[link])
+                # Panel(
+                #     renderable,
+                #     title=f"[dim]{prefix.value.upper()}",
+                #     title_align="left",
+                #     border_style="dim",
+                #     width=80,
+                # )
+            else:
+                renderable = r_type(index[link])
 
             console.print(renderable)
 
