@@ -13,12 +13,14 @@ import typer
 from datasworn.core.models import BaseModel
 from pysworn.common import datasworn_tree
 from pysworn.renderables import RENDERABLE_TYPES, get_renderable
-from pysworn.repl.utils import get_merged_dict
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.traceback import install
+from rich.tree import Tree
+
+from pysworn.repl.utils import get_merged_dict
 
 console = Console(force_terminal=True)
 install()
@@ -365,8 +367,13 @@ def map_(
         datasworn_tree[k]
     merged_dict = get_merged_dict(chain)
 
-    def _expand(d: dict[str, Any], path: str = ""):
+    def _expand(
+        d: dict[str, Any],
+        node,
+        path: str = "",
+    ):
         for k, v in d.items():
+            node_ = node.add(f"{k}")
             path_ = f"{path} {k}"
             print(path_)
             if isinstance(v, Template):
@@ -378,13 +385,17 @@ def map_(
                         d[k].append(c)
                         if print_:
                             console.print(get_renderable(obj))
+                node_.add(f"[blue]{', '.join(d[k])}")
             else:
-                _expand(v, path_)
+                _expand(v, node=node_, path=path_)
 
-    _expand(merged_dict)
+    tree = Tree(str(chain))
+    _expand(merged_dict, node=tree)
 
     for t in type_:
         print(merged_dict[t])
+
+    print(tree)
 
 
 if __name__ == "__main__":

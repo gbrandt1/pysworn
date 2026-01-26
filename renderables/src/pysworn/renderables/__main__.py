@@ -11,6 +11,7 @@ from rich.pretty import Pretty
 from rich.rule import Rule
 from rich.table import Table
 from rich.theme import Theme
+from rich.tree import Tree
 
 from pysworn.renderables.renderables import get_renderable
 
@@ -125,8 +126,10 @@ def pages(
 
     for title in sorted(page_index.keys()):
         print(Markdown(f"# {title}"))
+        tree = Tree(f"{title}")
         for page in sorted(page_index[title].keys()):
             print(Rule(f"{page:4}", align="left"))
+            node = tree.add(f"{page:4}")
             for k, v in page_index[title][page].items():
                 renderable = get_renderable(v)
                 print(
@@ -135,10 +138,12 @@ def pages(
                     f"<{type(v).__name__}>",
                     # f"{renderable}",
                 )
-
                 # print(Pretty(v))
                 if render:
                     print(renderable)
+                node.add(k)
+
+        print(tree)
 
 
 @app.command("print")

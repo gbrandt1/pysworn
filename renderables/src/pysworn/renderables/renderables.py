@@ -70,6 +70,7 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Column, Table
 from rich.text import Text
+from rich.tree import Tree
 
 # from datasworn.src.pysworn.datasworn._datasworn import TaggableNodeType
 
