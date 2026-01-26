@@ -1,13 +1,9 @@
 import fnmatch
 import logging
 import random
-from calendar import c
-from collections import ChainMap, UserDict
-from collections.abc import Mapping
-from encodings.punycode import T
+from pathlib import Path
 from string import Template
-from typing import Annotated, Any, Generic
-from webbrowser import get
+from typing import Annotated, Any
 
 import typer
 from datasworn.core.models import BaseModel
@@ -25,29 +21,25 @@ from pysworn.repl.utils import get_merged_dict
 console = Console(force_terminal=True)
 install()
 
-app = typer.Typer(no_args_is_help=True, invoke_without_command=True)
-
-# classic = datasworn_tree["classic"]
-# classic = datasworn_tree["delve"]
-# datasworn_tree["starforged"]
-
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="INFO",
-    format=FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler()],
-)
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
-
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+
+app = typer.Typer(
+    no_args_is_help=True,
+    invoke_without_command=True,
+)
+
+# Global state
+state: dict[str, Any] = {
+    "chain": [],
+    "merged_dict": {},
+    "index": datasworn_tree.index,
+}
 
 
-class Collection(UserDict):
-    def __init__(self, name: str, ruleset: str):
-        self.id = f"collection:{ruleset}/{name}"
-
+# class Collection(UserDict):
+#     def __init__(self, name: str, ruleset: str):
+#         self.id = f"collection:{ruleset}/{name}"
 
 # for ruleset in datasworn_tree:
 #     for k, v in vars(datasworn_tree[ruleset]).items():
@@ -186,18 +178,6 @@ def move():
     print_datasworn(face_danger)
 
 
-def parse_line(line) -> tuple[str, list[str], dict[str, str]] | None:
-    if not (tokens := line.split()):
-        return
-    log.debug(f"Parsing {tokens} from line")
-    cmd: str = tokens[0]
-    args: list[str] = [k for k in tokens[1:] if "=" not in k]
-    kwargs: dict[str, str] = {
-        k: v for k, v in (item.split("=") for item in tokens[1:] if "=" in item)
-    }
-    return cmd, args, kwargs
-
-
 def get_object(args: list[str]) -> BaseModel | dict[str, Any] | str:
     obj = datasworn_tree[args[0]]
     for arg in args[1:]:
@@ -232,21 +212,15 @@ def get_object(args: list[str]) -> BaseModel | dict[str, Any] | str:
 
 
 def get_object_by_id(args: list[str]) -> BaseModel | None:
-    target = f"*{'*'.join(args)}"
-    keys = fnmatch.filter(list(datasworn_tree.index), target)
-    if not keys:
-        log.error(f"Unknown object {target}. Did you mean:")
-        target = f"*{'*'.join(args)}*"
-        matches = fnmatch.filter(list(datasworn_tree.index), target)
-        matches = set(k for k in matches if "." not in k)
-        print_nested_dict(get_nested_dict(matches))
-        return None
-    if len(keys) > 1:
-        print(keys)
-        print("Multiple choices. Did you mean:")
-        print_nested_dict(get_nested_dict(keys))
-        return None
-    return index.get(keys[0], None)
+    d = state["merged_dict"]
+    for k in args:
+        if k in d:
+            d = d[k]
+        else:
+            log.error(f"Unknown object {k}. Did you mean:")
+            print(" ".join(d.keys()))
+            return None
+    return d
 
 
 COMMANDS = {
@@ -254,34 +228,60 @@ COMMANDS = {
 }
 
 
+def parse_line(line: str) -> tuple[str, list[str], dict[str, str]] | None:
+    if not (tokens := line.split()):
+        return None
+    log.debug(f"Parsing {tokens} from line")
+    cmd: str = tokens[0]
+    args: list[str] = [k for k in tokens[1:] if "=" not in k]
+    kwargs: dict[str, str] = {
+        k: v for k, v in (item.split("=") for item in tokens[1:] if "=" in item)
+    }
+    return cmd, args, kwargs
+
+
 def parse_dsl(dsl: str):
     for line in dsl.splitlines():
-        if line.strip().startswith("#"):
+        if "#" in line:
+            line = line.split("#")[0]
+        if not line:
             continue
-        parsed_line = parse_line(line.lower())
-        if not parsed_line:
+        line.strip()
+        if not (parsed_line := parse_line(line)):
             continue
         cmd, args, kwargs = parsed_line
-
+        log.debug(f"Parsed '{cmd}' {args} {kwargs}")
         obj = get_object_by_id(args)
-        if obj:
-            COMMANDS[cmd](obj, **kwargs)
 
-        # print_datasworn(obj)
+        if obj is None:
+            continue
+        if isinstance(obj, dict):
+            print(obj.keys())
+        elif isinstance(obj, list):
+            print_datasworn(obj[0], **kwargs)
+            for o in obj[1:]:
+                print(f"See also: {o.id}")
+
+            target = f"*{obj[0].id.split(':')[1]}*"
+            print(target)
+            keys = fnmatch.filter(list(datasworn_tree.index), target)
+            for k in keys:
+                print(f"{k}")
+
+        else:
+            log.error(f"Unknown object type {type(obj)}")
+        # if obj:
+        # COMMANDS[cmd](obj, **kwargs)
 
 
 @app.command()
-def main(args: list[str]):
-    dsl = """
-view classic hinterlands
-view classic old_world
-view classic face_danger
-view classic face_danger outcome=strong_hit
-view classic character role
-view delve journal
-view classic character role
-    """
-    line = " ".join(args)
+def load(file_path: Annotated[str, typer.Argument()]):
+    with Path(file_path).read_text() as f:
+        parse_dsl(f.read())
+
+
+@app.command("exec")
+def exec_line(line: str):
     parse_dsl(line)
 
 
@@ -354,18 +354,10 @@ def show_tree():
 
 @app.command("map")
 def map_(
-    chain: Annotated[list[str], typer.Option("-c", "--chain")] = [
-        "ancient_wonders",
-        "sundered_isles",
-        "starforged",
-    ],
     type_: Annotated[list[str], typer.Option("-t", "--type")] = ["oracle_rollable"],
     print_: Annotated[bool, typer.Option("-p", "--print")] = False,
 ):
-    print(chain)
-    for k in chain:
-        datasworn_tree[k]
-    merged_dict = get_merged_dict(chain)
+    merged_dict = get_merged_dict(state["chain"])
 
     def _expand(
         d: dict[str, Any],
@@ -373,7 +365,6 @@ def map_(
         path: str = "",
     ):
         for k, v in d.items():
-            node_ = node.add(f"{k}")
             path_ = f"{path} {k}"
             print(path_)
             if isinstance(v, Template):
@@ -385,11 +376,12 @@ def map_(
                         d[k].append(c)
                         if print_:
                             console.print(get_renderable(obj))
-                node_.add(f"[blue]{', '.join(d[k])}")
+                node.add(f"{k} [blue]{', '.join(d[k])}")
             else:
+                node_ = node.add(f"{k}")
                 _expand(v, node=node_, path=path_)
 
-    tree = Tree(str(chain))
+    tree = Tree(str(chain), guide_style="green")
     _expand(merged_dict, node=tree)
 
     for t in type_:
@@ -398,14 +390,46 @@ def map_(
     print(tree)
 
 
+@app.callback()
+def main(
+    chain: Annotated[list[str], typer.Option("-c", "--chain")] = [
+        "starsmith",
+        "starforged",
+    ],
+    log_level: Annotated[
+        str, typer.Option("-l", "--log-level", case_sensitive=False)
+    ] = "info",
+):
+    logging.basicConfig(
+        level=log_level.upper(),
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler()],
+    )
+
+    # useful chains:
+    # classic delve lodestar
+    # starforged sundered_isles ancient_wonders
+
+    state["chain"] = chain
+    for c in chain:
+        datasworn_tree[c]
+    state["merged_dict"] = get_merged_dict(chain)
+
+    def _expand(d: dict[str, Any]):
+        for k, v in d.items():
+            if isinstance(v, Template):
+                d[k] = []
+                for c in chain:
+                    id_ = v.substitute(ruleset=c)
+                    obj = index.get(id_, None)
+                    if obj:
+                        d[k].append(obj)
+            else:
+                _expand(v)
+
+    _expand(state["merged_dict"])
+
+
 if __name__ == "__main__":
-    # datasworn_tree["classic"]
-    # datasworn_tree["delve"]
-    #    datasworn_tree["starforged"]
-    #   datasworn_tree["sundered_isles"]
-    #  datasworn_tree["ancient_wonders"]
-
-    # for k in datasworn_tree:
-    #     datasworn_tree[k]
-
     app()
