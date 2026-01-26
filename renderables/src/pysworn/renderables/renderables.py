@@ -153,12 +153,13 @@ def render_text_with_embeds(
         #     yield Markdown(f"- {oracle_id}")
         # elif oracle := index[id_]:
         else:
-            obj = index[id_embed]
-            renderable = RENDERABLE_TYPES.get(type(obj), None)
-            if renderable:
-                yield ""
-                yield renderable(obj)
-        # else:
+            if obj := index.get(id_embed, None):
+                renderable = RENDERABLE_TYPES.get(type(obj), None)
+                if renderable:
+                    yield ""
+                    yield renderable(obj)
+            else:
+                yield Markdown(f"- **{oracle_id}**", style="red")
         #     yield Markdown(f"- Oracle {oracle_id} not found")
 
 
