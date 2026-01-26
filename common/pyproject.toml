@@ -24,14 +24,14 @@ module-name = "pysworn.common"
 
 
 [tool.uv.sources]
-datasworn-classic = { path = "../../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/classic", editable = true }
-datasworn-core = { path = "../../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/core", editable = true }
-datasworn-delve = { path = "../../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/delve", editable = true }
-datasworn-starforged = { path = "../../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/starforged", editable = true }
-datasworn-sundered-isles = { path = "../../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/sundered_isles", editable = true }
-datasworn-community-content-ancient-wonders = { path = "../../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders", editable = true }
-datasworn-community-content-fe-runners = { path = "../../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners", editable = true }
-datasworn-community-content-starsmith = { path = "../../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith", editable = true }
+datasworn-classic = { path = "../../datasworn/pkg/python/datasworn/src/datasworn/classic", editable = true }
+datasworn-core = { path = "../../datasworn/pkg/python/datasworn/src/datasworn/core", editable = true }
+datasworn-delve = { path = "../../datasworn/pkg/python/datasworn/src/datasworn/delve", editable = true }
+datasworn-starforged = { path = "../../datasworn/pkg/python/datasworn/src/datasworn/starforged", editable = true }
+datasworn-sundered-isles = { path = "../../datasworn/pkg/python/datasworn/src/datasworn/sundered_isles", editable = true }
+datasworn-community-content-ancient-wonders = { path = "../../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders", editable = true }
+datasworn-community-content-fe-runners = { path = "../../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners", editable = true }
+datasworn-community-content-starsmith = { path = "../../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith", editable = true }
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]

@@ -175,27 +175,27 @@ wheels = [
 [[package]]
 name = "datasworn-classic"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/classic" }
+source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/classic" }
 
 [[package]]
 name = "datasworn-community-content-ancient-wonders"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders" }
+source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders" }
 
 [[package]]
 name = "datasworn-community-content-fe-runners"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners" }
+source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners" }
 
 [[package]]
 name = "datasworn-community-content-starsmith"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith" }
+source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith" }
 
 [[package]]
 name = "datasworn-core"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/core" }
+source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/core" }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
 ]
@@ -206,17 +206,17 @@ requires-dist = [{ name = "pydantic", extras = ["email"], specifier = ">=2.12.5"
 [[package]]
 name = "datasworn-delve"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/delve" }
+source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/delve" }
 
 [[package]]
 name = "datasworn-starforged"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/starforged" }
+source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/starforged" }
 
 [[package]]
 name = "datasworn-sundered-isles"
 version = "0.1.0"
-source = { editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/sundered_isles" }
+source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/sundered_isles" }
 
 [[package]]
 name = "dnspython"
@@ -735,14 +735,14 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "datasworn-classic", editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/classic" },
-    { name = "datasworn-community-content-ancient-wonders", editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders" },
-    { name = "datasworn-community-content-fe-runners", editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners" },
-    { name = "datasworn-community-content-starsmith", editable = "../datasworn-sp-devel/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith" },
-    { name = "datasworn-core", editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/core" },
-    { name = "datasworn-delve", editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/delve" },
-    { name = "datasworn-starforged", editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/starforged" },
-    { name = "datasworn-sundered-isles", editable = "../datasworn-sp-devel/pkg/python/datasworn/src/datasworn/sundered_isles" },
+    { name = "datasworn-classic", editable = "../datasworn/pkg/python/datasworn/src/datasworn/classic" },
+    { name = "datasworn-community-content-ancient-wonders", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/ancient-wonders" },
+    { name = "datasworn-community-content-fe-runners", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/fe-runners" },
+    { name = "datasworn-community-content-starsmith", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn-community-content/starsmith" },
+    { name = "datasworn-core", editable = "../datasworn/pkg/python/datasworn/src/datasworn/core" },
+    { name = "datasworn-delve", editable = "../datasworn/pkg/python/datasworn/src/datasworn/delve" },
+    { name = "datasworn-starforged", editable = "../datasworn/pkg/python/datasworn/src/datasworn/starforged" },
+    { name = "datasworn-sundered-isles", editable = "../datasworn/pkg/python/datasworn/src/datasworn/sundered_isles" },
     { name = "rich", specifier = ">=14.2.0" },
 ]
 

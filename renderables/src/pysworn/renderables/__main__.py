@@ -3,14 +3,16 @@ from typing import Annotated, TypeAliasType, Union, get_args, get_origin
 
 import typer
 from pysworn.common import datasworn_tree
-from pysworn.renderables.renderables import get_renderable
 from rich.columns import Columns
 from rich.console import Console, RenderableType
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.rule import Rule
 from rich.table import Table
 from rich.theme import Theme
+
+from pysworn.renderables.renderables import get_renderable
 
 from . import RENDERABLE_KEYS, RenderableKeyEnum, RuleSetRenderable
 
@@ -101,12 +103,12 @@ def types():
 
 
 @app.command()
-def check():
+def pages(
+    render: Annotated[bool, typer.Option("-r", "--render")] = False,
+    # filter: Annotated[str, typer.Option("-f", "--filter")] = ".row",
+):
     page_index = {}
     for k, v in datasworn_tree.index.items():
-        # if not "oracle_collection" in k:
-        #     continue
-
         title = None
         page = None
         if source := getattr(v, "source", None):
@@ -122,9 +124,9 @@ def check():
         dd[k] = v
 
     for title in sorted(page_index.keys()):
-        print(Rule(f"{title}", align="left"))
+        print(Markdown(f"# {title}"))
         for page in sorted(page_index[title].keys()):
-            # print(f"{page:4}")
+            print(Rule(f"{page:4}", align="left"))
             for k, v in page_index[title][page].items():
                 renderable = get_renderable(v)
                 print(
@@ -135,8 +137,8 @@ def check():
                 )
 
                 # print(Pretty(v))
-                # if renderable:
-                print(renderable)
+                if render:
+                    print(renderable)
 
 
 @app.command("print")

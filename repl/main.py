@@ -352,8 +352,13 @@ def show_tree():
 
 @app.command("map")
 def map_(
-    chain: list[str] = ["ancient_wonders", "sundered_isles", "starforged"],
-    print_: Annotated[bool, typer.Option("-p","--print")] = False,
+    chain: Annotated[list[str], typer.Option("-c", "--chain")] = [
+        "ancient_wonders",
+        "sundered_isles",
+        "starforged",
+    ],
+    type_: Annotated[list[str], typer.Option("-t", "--type")] = ["oracle_rollable"],
+    print_: Annotated[bool, typer.Option("-p", "--print")] = False,
 ):
     print(chain)
     for k in chain:
@@ -375,17 +380,19 @@ def map_(
                             console.print(get_renderable(obj))
             else:
                 _expand(v, path_)
+
     _expand(merged_dict)
 
-    print(merged_dict)
+    for t in type_:
+        print(merged_dict[t])
 
 
 if __name__ == "__main__":
     # datasworn_tree["classic"]
     # datasworn_tree["delve"]
-#    datasworn_tree["starforged"]
- #   datasworn_tree["sundered_isles"]
-  #  datasworn_tree["ancient_wonders"]
+    #    datasworn_tree["starforged"]
+    #   datasworn_tree["sundered_isles"]
+    #  datasworn_tree["ancient_wonders"]
 
     # for k in datasworn_tree:
     #     datasworn_tree[k]
