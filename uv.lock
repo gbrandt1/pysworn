@@ -688,6 +688,7 @@ dependencies = [
 dev = [
     { name = "poethepoet" },
     { name = "pyinstrument" },
+    { name = "pysworn-common" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -708,6 +709,7 @@ requires-dist = [
 dev = [
     { name = "poethepoet", specifier = ">=0.34.0" },
     { name = "pyinstrument", specifier = ">=5.0.1" },
+    { name = "pysworn-common", editable = "common" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-cov", specifier = ">=6.1.1" },

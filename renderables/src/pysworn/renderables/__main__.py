@@ -13,9 +13,9 @@ from rich.table import Table
 from rich.theme import Theme
 from rich.tree import Tree
 
-from pysworn.renderables.renderables import get_renderable
+from pysworn.renderables.renderables import RENDERABLE_TYPES, get_renderable
 
-from . import RENDERABLE_KEYS, RenderableKeyEnum, RuleSetRenderable
+from . import RenderableKeyEnum, RuleSetRenderable
 
 console = Console(force_terminal=True)
 console.push_theme(
@@ -32,28 +32,18 @@ console.push_theme(
 )
 
 print = console.print
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+logging.getLogger("markdown_it").setLevel(logging.WARNING)
+
 app = typer.Typer(
     # callback=callback,
     no_args_is_help=True,
 )
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
-logging.getLogger("markdown_it").setLevel(logging.WARNING)
-# trigger lazy loading
 
-for k in datasworn_tree:
-    datasworn_tree[k]
-
-# datasworn_tree["sundered_isles"]
-
-t = Table.grid(padding=(0, 1), pad_edge=False)
 index = datasworn_tree.index
-for k in datasworn_tree:
-    num = sum(1 for i in index.keys() if k in i)
-    t.add_row(f"{k}", f"{num}")
-
-console.print(t)
 
 
 @app.command()
@@ -86,20 +76,28 @@ def types():
         return rt
 
     def get_renderable_table():
-        t = Table("key", "renderable", "targets", highlight=True)
-        for k, v in RENDERABLE_KEYS.items():
-            fullargspec = getfullargspec(v.__init__)
-            # if not fullargspec:
-            #     print("No renderable defined for {k}  {v.__name__}")
-            # print(fullargspec)
-            targets = []
-            arg = fullargspec.args[1]
-            annotation = fullargspec.annotations[arg]
-            targets.extend(_resolve_type(annotation))
-            t.add_row(f"'{k}'", f"<{v.__name__}>", Columns(targets))
+        # for k, v in RENDERABLE_KEYS.items():
+        keys: dict[str, set[type]] = {}
+        for k, v in index.items():
+            # fullargspec = getfullargspec(v.__init__)
+            # arg = fullargspec.args[1]
+            # annotation = fullargspec.annotations[arg]
+            # targets = _resolve_type(annotation)
+
+            key = k.split(":")[0]
+            keys.setdefault(key, set())
+            keys[key].add(type(v))
+
+        t = Table("key", "type", "renderable", highlight=True)
+        for k, v in keys.items():
+            for vv in v:
+                renderable = RENDERABLE_TYPES.get(vv, None)
+                renderable = f"<{renderable.__name__}>" if renderable else f"[red]None"
+                t.add_row(f"'{k}'", f"<{vv.__name__}>", f"{renderable}")
+            t.add_section()
         return t
 
-    print(gather_keys())
+    # print(gather_keys())
     print(get_renderable_table())
 
 
@@ -115,7 +113,7 @@ def pages(
         if source := getattr(v, "source", None):
             # print(source)
             title = source.title
-            page = source.page
+            page = source.page or -1
 
         if title is None or page is None:
             continue
@@ -128,7 +126,7 @@ def pages(
         print(Markdown(f"# {title}"))
         tree = Tree(f"{title}")
         for page in sorted(page_index[title].keys()):
-            print(Rule(f"{page:4}", align="left"))
+            # print(Rule(f"{page:4}", align="left"))
             node = tree.add(f"{page:4}")
             for k, v in page_index[title][page].items():
                 renderable = get_renderable(v)
@@ -143,7 +141,7 @@ def pages(
                     print(renderable)
                 node.add(k)
 
-        print(tree)
+        # print(tree)
 
 
 @app.command("print")
@@ -165,11 +163,11 @@ def print_(
     log.debug(f"prefix: {prefix.value}")
 
     if prefix.value == "rulesets":
-        r_type = RuleSetRenderable
+        renderable = RuleSetRenderable
         for ruleset in datasworn_tree:
             print(
                 Panel(
-                    r_type(datasworn_tree[ruleset]),
+                    renderable(datasworn_tree[ruleset]),
                     title=f"[dim]{ruleset} {prefix.value.upper()}",
                     title_align="left",
                     border_style="dim",
@@ -179,48 +177,50 @@ def print_(
         return
 
     renderables: list[RenderableType] = []
+
     for link, v in index.items():
-        if ":" not in link:
-            continue
         rule_key = link.split(":")[0]
         if prefix != RenderableKeyEnum.ALL and rule_key != prefix.value:
-            # print(rule_type)
             continue
         if no_rows and rule_key.endswith(".row"):
             continue
-        log.debug(f"rule_key: {rule_key}")
-        r_type = RENDERABLE_KEYS.get(rule_key)
+        obj = index[link]
+
+        renderable = get_renderable(obj)
+        if columns:
+            renderables.append(renderable)
+            continue
         if debug:
-            print(f"[i dim]{link}[/] --> {r_type} {type(index[link]).__name__}")
-            # continue
-        if r_type:
-            renderable: RenderableType = r_type(index[link])
-            if panel:
-                renderable = get_renderable(index[link])
-                # Panel(
-                #     renderable,
-                #     title=f"[dim]{prefix.value.upper()}",
-                #     title_align="left",
-                #     border_style="dim",
-                #     width=80,
-                # )
-            else:
-                renderable = r_type(index[link])
+            print(
+                f"[i dim]{link}[/] --> <{type(renderable).__name__}>(<{type(obj).__name__}>)"
+            )
+        console.print(renderable)
+        if debug:
+            console.print(Pretty(obj, max_string=40))
 
-            console.print(renderable)
+    if columns:
+        console.print(Columns(renderables))
 
-    # if columns:
-    #     print(
-    #         Columns(
-    #             renderables,
-    #             expand=True,
-    #             # equal=True,
-    #             # column_first=True,
-    #         )
-    #     )
-    # else:
-    #     for renderable in renderables:
-    #         print(renderable)
+
+@app.callback()
+def main(
+    ruleset: Annotated[list[str], typer.Option("--ruleset", "-r")] = [],
+):
+    if ruleset == []:
+        for k in datasworn_tree:
+            datasworn_tree[k]
+    else:
+        for k in ruleset:
+            datasworn_tree[k]
+    # datasworn_tree["sundered_isles"]
+
+    t = Table.grid(padding=(0, 1), pad_edge=False)
+
+    for k in datasworn_tree:
+        num = sum(1 for i in index.keys() if k in i)
+        t.add_row(f"{k}", f"{num}")
+
+    console.print(t)
 
 
 if __name__ == "__main__":

@@ -25,6 +25,7 @@ package = false # the project itself is not a package
 pysworn-reference = { workspace = true }
 pysworn-renderables = { workspace = true }
 pysworn-datasworn = { workspace = true }
+pysworn-common = { workspace = true }
 # datasworn = { path = "../datasworn/pkg/python/datasworn" }
 
 [tool.uv.workspace]
@@ -53,6 +54,7 @@ dev = [
     "pyinstrument>=5.0.1",
     "pytest-xdist>=3.8.0",
     "textual-dissect>=0.2.0",
+    "pysworn-common",
 ]
 
 

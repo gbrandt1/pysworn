@@ -1,20 +1,13 @@
 import datetime
 import enum
 import logging
-from collections import ChainMap, OrderedDict
+from collections import OrderedDict
 from collections.abc import Mapping
 from importlib.resources import files
 from typing import Any
 
 from datasworn.core.models import Expansion, Ruleset
 from pydantic import AnyUrl, BaseModel
-from rich import print
-
-# from rich.logging import RichHandler
-# FORMAT = "%(message)s"
-# logging.basicConfig(
-#     level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-# )
 
 log = logging.getLogger(__name__)
 
@@ -65,43 +58,24 @@ class DataswornTree(Mapping[str, Any]):
         self,
         obj: BaseModel | dict[str, Any] | list[Any],
         path: str = "",
-    ) -> int:
+    ) -> None:
         """Datasworn ids --> Datasworn objects"""
-        num = 0
+
         match obj:
             case BaseModel():
                 _id = getattr(obj, "id", None)
-                if not _id:
-                    _id = getattr(obj, "_id", None)
-                if _id:
+                if _id and ":" in _id:
                     self.index[_id] = obj
-
-                    num += 1
                 for k, v in obj:
                     self._build_index(v, path=f"{path}.{k}")
             case dict():
-                # last = path.split(".")[-1]
-                # if last not in (
-                #     "contents",
-                #     "collections",
-                #     "oracles",
-                #     "controls",
-                #     "variants",
-                #     "moves",
-                #     "options",
-                #     "trigger",
-                # ):
-                #     log.debug(f"{path}: {type(obj)}")
                 for k, v in obj.items():
                     self._build_index(v, path=f"{path}['{k}']")
             case list():
-                for k, v in enumerate(obj):
-                    self._build_index(v, path=f"{path}[{k}]")
-            case int() | str() | None | datetime.date() | enum.Enum() | AnyUrl():
-                pass
+                for i, v in enumerate(obj):
+                    self._build_index(v, path=f"{path}[{i}]")
             case _:
-                log.error(f"{path}: Unknown type: {type(obj)}")
-        return num
+                pass
 
     def _build_human_index(self):
         """Index using humandreadable Datasworn paths --> Datasworn objects"""

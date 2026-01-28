@@ -2,7 +2,7 @@ from string import Template
 from typing import Any
 
 from pysworn.common import datasworn_tree
-from pysworn.repl.utils import get_merged_dict
+from pysworn.repl.utils import get_id_dict
 
 # from textual.cache import LRUCache
 from textual.content import Content
@@ -40,7 +40,7 @@ class DataswornAutoComplete(AutoComplete):
         self.current: Template | None = None
 
         self.chain = ["ancient_wonders", "sundered_isles", "starforged"]
-        self.root: dict[str, Any] = get_merged_dict(self.chain)
+        self.root: dict[str, Any] = get_id_dict(self.chain)
 
         self.log(self.root)
 

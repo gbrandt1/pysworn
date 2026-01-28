@@ -1,4 +1,3 @@
-import fnmatch
 import logging
 import random
 from pathlib import Path
@@ -9,14 +8,15 @@ import typer
 from datasworn.core.models import BaseModel
 from pysworn.common import datasworn_tree
 from pysworn.renderables import RENDERABLE_TYPES, get_renderable
+from pysworn.repl.utils import depth_first_merge, get_chain_map, get_id_dict
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
+from rich.pretty import Pretty
+from rich.rule import Rule
 from rich.traceback import install
 from rich.tree import Tree
-
-from pysworn.repl.utils import get_merged_dict
 
 console = Console(force_terminal=True)
 install()
@@ -32,7 +32,7 @@ app = typer.Typer(
 # Global state
 state: dict[str, Any] = {
     "chain": [],
-    "merged_dict": {},
+    "id_dict": {},
     "index": datasworn_tree.index,
 }
 
@@ -212,7 +212,8 @@ def get_object(args: list[str]) -> BaseModel | dict[str, Any] | str:
 
 
 def get_object_by_id(args: list[str]) -> BaseModel | None:
-    d = state["merged_dict"]
+    d = state["id_dict"]
+    d = depth_first_merge(*[d[k] for k in d])
     for k in args:
         if k in d:
             d = d[k]
@@ -253,31 +254,40 @@ def parse_dsl(dsl: str):
         log.debug(f"Parsed '{cmd}' {args} {kwargs}")
         obj = get_object_by_id(args)
 
-        if obj is None:
-            continue
-        if isinstance(obj, dict):
-            print(obj.keys())
-        elif isinstance(obj, list):
-            print_datasworn(obj[0], **kwargs)
-            for o in obj[1:]:
-                print(f"See also: {o.id}")
+        match obj:
+            case dict():
+                print(" ".join(obj.keys()))
+            case list():
+                # print_datasworn(obj[0], **kwargs)
+                for o in obj[1:]:
+                    print(f"See also: {o.id}")
 
-            target = f"*{obj[0].id.split(':')[1]}*"
-            print(target)
-            keys = fnmatch.filter(list(datasworn_tree.index), target)
-            for k in keys:
-                print(f"{k}")
-
-        else:
-            log.error(f"Unknown object type {type(obj)}")
-        # if obj:
-        # COMMANDS[cmd](obj, **kwargs)
+                # target = f"*{obj[0].id.split(':')[1]}*"
+                # print(target)
+                # keys = fnmatch.filter(list(datasworn_tree.index), target)
+                target = obj[0].id.split(":")[1]
+                keys = [k for k in datasworn_tree.index if target in k]
+                for k in keys:
+                    print(Rule(k))
+                    print_datasworn(index[k], **kwargs)
+                    if state["debug"]:
+                        print(Pretty(index[k]))
+            case str():
+                print(obj)
+                if obj in index:
+                    print_datasworn(index[obj])
+            case None:
+                log.error("No object found.")
+            case _:
+                log.error(f"Unknown object type {type(obj)}")
+            # if obj:
+            # COMMANDS[cmd](obj, **kwargs)
 
 
 @app.command()
 def load(file_path: Annotated[str, typer.Argument()]):
-    with Path(file_path).read_text() as f:
-        parse_dsl(f.read())
+    lines = Path(file_path).read_text()
+    parse_dsl(lines)
 
 
 @app.command("exec")
@@ -320,20 +330,13 @@ def render_ids():
 
 
 @app.command()
-def ids():
+def ids(no_rows: Annotated[bool, typer.Option("-n", "--no-rows")] = False):
     for k in index:
-        print(k)
-
-    return
-
-    for k, v in index.items():
-        # print(k, v.__class__)
-        if ":" not in k:
-            print(k)
-            continue
         tag, path = k.split(":")
-        if "." in path:
+        if "." in path and no_rows:
             continue
+        print(path)
+        continue
         if "." in tag:
             tag = tag.split(".")[0]
         if tag == "oracle_rollable":
@@ -357,7 +360,17 @@ def map_(
     type_: Annotated[list[str], typer.Option("-t", "--type")] = ["oracle_rollable"],
     print_: Annotated[bool, typer.Option("-p", "--print")] = False,
 ):
-    merged_dict = get_merged_dict(state["chain"])
+    chain = state["chain"]
+
+    nd = state["id_dict"]
+    # print(nd)
+
+    # cm = get_chain_map(*[nd[k] for k in nd])
+    # print(cm)
+
+    cm = depth_first_merge(*[nd[k] for k in nd])
+    print(cm)
+    return
 
     def _expand(
         d: dict[str, Any],
@@ -382,10 +395,10 @@ def map_(
                 _expand(v, node=node_, path=path_)
 
     tree = Tree(str(chain), guide_style="green")
-    _expand(merged_dict, node=tree)
+    _expand(id_dict, node=tree)
 
     for t in type_:
-        print(merged_dict[t])
+        print(id_dict[t])
 
     print(tree)
 
@@ -393,13 +406,18 @@ def map_(
 @app.callback()
 def main(
     chain: Annotated[list[str], typer.Option("-c", "--chain")] = [
-        "starsmith",
-        "starforged",
+        # "starsmith", "starforged",
+        # "lodestar",
+        "delve",
+        "classic",
     ],
     log_level: Annotated[
         str, typer.Option("-l", "--log-level", case_sensitive=False)
     ] = "info",
+    debug: Annotated[bool, typer.Option("-d", "--debug")] = False,
 ):
+    state["debug"] = debug
+
     logging.basicConfig(
         level=log_level.upper(),
         format="%(message)s",
@@ -412,9 +430,9 @@ def main(
     # starforged sundered_isles ancient_wonders
 
     state["chain"] = chain
-    for c in chain:
-        datasworn_tree[c]
-    state["merged_dict"] = get_merged_dict(chain)
+    maps = [datasworn_tree[c] for c in chain]
+    state["id_dict"] = get_id_dict(*maps)
+    return
 
     def _expand(d: dict[str, Any]):
         for k, v in d.items():
@@ -428,7 +446,7 @@ def main(
             else:
                 _expand(v)
 
-    _expand(state["merged_dict"])
+    _expand(state["id_dict"])
 
 
 if __name__ == "__main__":
