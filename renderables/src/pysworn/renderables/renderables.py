@@ -717,26 +717,9 @@ class OracleRollableRenderable(PyswornRenderable):
         | EmbeddedOracleRollable
         | EmbeddedOracleColumnText
         | EmbeddedOracleTableText,
-        *,
-        roll: str | None = None,
     ):
         self.oracle = table
-
-        if roll is None:
-            self.rows = [OracleRollableRowRenderable(row) for row in self.oracle.rows]
-            return
-
-        if len(roll) > 0:
-            self.roll = int(roll)
-        if roll == "":
-            self.roll = random.randint(1, int(self.oracle.dice.split("d")[1]))
-
-        for row in self.oracle.rows:
-            if row.roll and row.roll.min <= self.roll <= row.roll.max:
-                self.rows = [OracleRollableRowRenderable(row)]
-                break
-        # row = random.choice(self.table.rows)
-        self.rows = [OracleRollableRowRenderable(row)]
+        self.rows = [OracleRollableRowRenderable(row) for row in self.oracle.rows]
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
