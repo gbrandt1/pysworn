@@ -984,6 +984,7 @@ name = "repl"
 version = "0.1.0"
 source = { editable = "repl" }
 dependencies = [
+    { name = "pygments" },
     { name = "pysworn-common" },
     { name = "pysworn-renderables" },
     { name = "textual-autocomplete" },
@@ -996,6 +997,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "pygments", specifier = ">=2.19.2" },
     { name = "pysworn-common", editable = "common" },
     { name = "pysworn-renderables", editable = "renderables" },
     { name = "textual-autocomplete", specifier = ">=4.0.6" },

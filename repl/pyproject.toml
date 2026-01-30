@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.14"
 dependencies = [
+    "pygments>=2.19.2",
     "pysworn-common",
     "pysworn-renderables",
     "textual-autocomplete>=4.0.6",

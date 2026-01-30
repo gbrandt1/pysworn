@@ -305,7 +305,7 @@ def map_(
     type_: Annotated[list[str], typer.Option("-t", "--type")] = ["oracle_rollable"],
     print_: Annotated[bool, typer.Option("-p", "--print")] = False,
 ):
-    chain = state["chain"]
+    chain = state["play"]
 
     nd = state["id_dict"]
     # print(nd)
@@ -350,7 +350,7 @@ def map_(
 
 @app.callback()
 def main(
-    chain: Annotated[list[str], typer.Option("-c", "--chain")] = [
+    play: Annotated[list[str], typer.Option("-p", "--play")] = [
         # "starsmith", "starforged",
         # "lodestar",
         "delve",
@@ -374,8 +374,12 @@ def main(
     # classic delve lodestar
     # starforged sundered_isles ancient_wonders
 
-    state["chain"] = chain
-    maps = [datasworn_tree[c] for c in chain]
+    state["play"] = play
+    try:
+        maps = [datasworn_tree[c] for c in play]
+    except KeyError as e:
+        log.error(e)
+        return
     state["id_dict"] = get_id_dict(*maps)
     return
 
@@ -383,7 +387,7 @@ def main(
         for k, v in d.items():
             if isinstance(v, Template):
                 d[k] = []
-                for c in chain:
+                for c in play:
                     id_ = v.substitute(ruleset=c)
                     obj = index.get(id_, None)
                     if obj:
