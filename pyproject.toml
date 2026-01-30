@@ -11,6 +11,7 @@ dependencies = [
     "pysworn-datasworn",
     "pysworn-reference",
     "pysworn-renderables",
+    "rapidfuzz>=3.14.3",
 ]
 
 [build-system]

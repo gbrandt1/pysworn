@@ -272,7 +272,7 @@ class CollectionRenderable:
 class AtlasCollectionRenderable(CollectionRenderable, PyswornRenderable):
     BORDER_TITLE = "Atlas"
 
-    def __init__(self, collection: AtlasCollection):
+    def __init__(self, collection: AtlasCollection, *args, **kwargs):
         self.collection = collection
 
 
@@ -291,7 +291,7 @@ class AtlasEntryRenderable(PyswornRenderable):
 
 
 class AssetAbilityRenderable(PyswornRenderable):
-    def __init__(self, ability: AssetAbility):
+    def __init__(self, ability: AssetAbility, *args, **kwargs):
         self.ability = ability
 
     def __rich_console__(
@@ -316,7 +316,7 @@ class AssetAbilityRenderable(PyswornRenderable):
 class AssetRenderable(PyswornRenderable):
     MAX_WIDTH = 50
 
-    def __init__(self, asset: Asset):
+    def __init__(self, asset: Asset, *args, **kwargs):
         self.asset = asset
 
     def __rich_console__(
@@ -354,7 +354,7 @@ class AssetRenderable(PyswornRenderable):
 class AssetCollectionRenderable(PyswornRenderable):
     BORDER_TITLE = "Asset Type"
 
-    def __init__(self, collection: AssetCollection):
+    def __init__(self, collection: AssetCollection, *args, **kwargs):
         self.collection = collection
 
     def __rich_console__(
@@ -387,7 +387,7 @@ class DelveSiteRenderable(PyswornRenderable):
     BORDER_TITLE = "Site"
     MAX_WIDTH = 86
 
-    def __init__(self, delve_site: DelveSite):
+    def __init__(self, delve_site: DelveSite, *args, **kwargs):
         self.delve_site = delve_site
 
     def __rich_console__(
@@ -409,7 +409,7 @@ class DelveSiteRenderable(PyswornRenderable):
 
 
 class DelveSiteDenizenRenderable(PyswornRenderable):
-    def __init__(self, denizen: DelveSiteDenizen):
+    def __init__(self, denizen: DelveSiteDenizen, *args, **kwargs):
         self.denizen = denizen
 
     def _render(self):
@@ -436,6 +436,8 @@ class DelveSiteFeatureRenderable(PyswornRenderable):
         | DelveSiteThemeFeature
         | DelveSiteDomainDanger
         | DelveSiteThemeDanger,
+        *args,
+        **kwargs,
     ):
         self.feature = feature
 
@@ -478,14 +480,14 @@ class DelveSiteDomainOrThemeRenderable(PyswornRenderable):
 class DelveSiteThemeRenderable(DelveSiteDomainOrThemeRenderable):
     BORDER_TITLE = "Theme"
 
-    def __init__(self, domain: DelveSiteTheme):
+    def __init__(self, domain: DelveSiteTheme, *args, **kwargs):
         self.domain_or_theme = domain
 
 
 class DelveSiteDomainRenderable(DelveSiteDomainOrThemeRenderable):
     BORDER_TITLE = "Domain"
 
-    def __init__(self, theme: DelveSiteDomain):
+    def __init__(self, theme: DelveSiteDomain, *args, **kwargs):
         self.domain_or_theme = theme
 
 
@@ -495,6 +497,8 @@ class MoveConditionRenderable(PyswornRenderable):
         condition: TriggerSpecialTrackCondition
         | TriggerProgressRollCondition
         | TriggerActionRollCondition,
+        *args,
+        **kwargs,
     ):
         self.condition = condition
 
@@ -522,6 +526,8 @@ class MoveOutcomeRenderable(PyswornRenderable):
     def __init__(
         self,
         outcome: MoveOutcome,
+        *args,
+        **kwargs,
     ):
         self.outcome = outcome
 
@@ -543,7 +549,7 @@ class MoveRenderable(PyswornRenderable):
         | EmbeddedMove
         | EmbeddedActionRollMove
         | EmbeddedSpecialTrackMove,
-        *,
+        *args,
         outcome: str | None = None,
         **kwargs,
     ):
@@ -569,7 +575,7 @@ class MoveRenderable(PyswornRenderable):
 class MoveCategoryRenderable(CollectionRenderable, PyswornRenderable):
     BORDER_TITLE = "Moves"
 
-    def __init__(self, collection: MoveCategory):
+    def __init__(self, collection: MoveCategory, *args, **kwargs):
         self.collection = collection
 
 
@@ -592,7 +598,7 @@ NPC_CHALLENGE_RANK = {
 
 
 class NpcVariantRenderable(PyswornRenderable):
-    def __init__(self, npc: NpcVariant):
+    def __init__(self, npc: NpcVariant, *args, **kwargs):
         self.npc = npc
 
     def __rich_console__(
@@ -632,7 +638,7 @@ class NpcVariantRenderable(PyswornRenderable):
 class NpcRenderable(PyswornRenderable):
     MAX_WIDTH = 88
 
-    def __init__(self, npc: Npc):
+    def __init__(self, npc: Npc, *args, **kwargs):
         self.npc = npc
 
     def __rich_console__(
@@ -644,7 +650,7 @@ class NpcRenderable(PyswornRenderable):
 
 
 class NpcCollectionRenderable(CollectionRenderable, PyswornRenderable):
-    def __init__(self, collection: NpcCollection):
+    def __init__(self, collection: NpcCollection, *args, **kwargs):
         self.collection = collection
 
 
@@ -654,8 +660,9 @@ class OracleTablesCollectionRenderable(PyswornRenderable):
     def __init__(
         self,
         collection: OracleTablesCollection,
-        *,
+        *args,
         roll: str | None = None,
+        **kwargs,
     ):
         self.collection = collection
         self.roll = roll
@@ -684,6 +691,8 @@ class OracleTableSharedRenderable(PyswornRenderable):
         collection: OracleTableSharedText
         | OracleTableSharedText2
         | OracleTableSharedRolls,
+        *args,
+        **kwargs,
     ):
         self.shared = collection
 
@@ -717,6 +726,8 @@ class OracleRollableRenderable(PyswornRenderable):
         | EmbeddedOracleRollable
         | EmbeddedOracleColumnText
         | EmbeddedOracleTableText,
+        *args,
+        **kwargs,
     ):
         self.oracle = table
         self.rows = [OracleRollableRowRenderable(row) for row in self.oracle.rows]
@@ -784,6 +795,8 @@ class OracleRollableRowRenderable(PyswornRenderable):
         self,
         row: OracleRollableRowText | OracleRollableRowText2 | OracleRollableRowText3,
         result: int | None = None,
+        *args,
+        **kwargs,
     ):
         self.row = row
         self.result = result
@@ -860,7 +873,7 @@ class OracleRollableRowRenderable(PyswornRenderable):
 class RarityRenderable(PyswornRenderable):
     MAX_WIDTH = 82
 
-    def __init__(self, rarity: Rarity):
+    def __init__(self, rarity: Rarity, *args, **kwargs):
         self.rarity = rarity
 
     def __rich_console__(
@@ -877,7 +890,7 @@ class RarityRenderable(PyswornRenderable):
 
 
 class TruthOptionRenderable(PyswornRenderable):
-    def __init__(self, truth: TruthOption):
+    def __init__(self, truth: TruthOption, *args, **kwargs):
         self.truth = truth
 
     def __rich_console__(
@@ -914,7 +927,7 @@ class TruthOptionRenderable(PyswornRenderable):
 class TruthRenderable(PyswornRenderable):
     MAX_WIDTH = 80
 
-    def __init__(self, truth: Truth):
+    def __init__(self, truth: Truth, *args, **kwargs):
         self.truth = truth
 
     def __rich_console__(
@@ -939,7 +952,7 @@ class TruthRenderable(PyswornRenderable):
 
 
 class RulesRenderable(PyswornRenderable):
-    def __init__(self, rules: Rules):
+    def __init__(self, rules: Rules, *args, **kwargs):
         self.rules = rules
 
     def __rich_console__(
