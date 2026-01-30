@@ -1,5 +1,4 @@
 import logging
-import random
 import re
 from inspect import getfullargspec
 from itertools import cycle
@@ -76,7 +75,6 @@ from rich.pretty import Pretty
 from rich.rule import Rule
 from rich.table import Column, Table
 from rich.text import Text
-from rich.tree import Tree
 
 # from datasworn.src.pysworn.datasworn._datasworn import TaggableNodeType
 
@@ -519,7 +517,7 @@ class MoveConditionRenderable(PyswornRenderable):
             text = self.condition.text
             for roll_option in self.condition.roll_options:
                 if roll_option.model_extra:
-                    yield Markdown(text + f" +{roll_option.model_extra['stat']}")
+                    yield Markdown(text + f" +{roll_option.model_extra.keys()}")
 
 
 class MoveOutcomeRenderable(PyswornRenderable):

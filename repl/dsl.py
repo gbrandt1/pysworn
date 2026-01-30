@@ -276,31 +276,22 @@ def render_ids():
 
 @app.command()
 def ids(
-    no_rows: Annotated[bool, typer.Option("-r", "--no-rows")] = False,
-    inverse: Annotated[bool, typer.Option("-i", "--inverse")] = False,
+    no_locals: Annotated[bool, typer.Option("-l", "--no-locals")] = False,
+    #    inverse: Annotated[bool, typer.Option("-i", "--inverse")] = False,
     human: Annotated[bool, typer.Option("-H", "--human")] = False,
 ):
     for k in index:
         tag, path = k.split(":")
-        if no_rows and ("." in path):
+        if no_locals and ("." in path):
             continue
         path = path.split("/")
-        if inverse:
-            print(f"{' '.join(reversed(path[1:]))} [dim]{path[0]} {tag}")
-        else:
-            print(path)
-        continue
-
-        if "." in tag:
-            tag = tag.split(".")[0]
-        if tag == "oracle_rollable":
-            tag = "oracle"
-        if "_" in tag:
+        if not human:
+            print(k)
             continue
-        path = path.split("/")
-        path.insert(1, tag)
-
-        print(" ".join(path))
+        tag = tag.split(".")[0] if "." in tag else tag
+        path = " ".join(reversed(path[1:] + [tag, path[0]]))
+        # path = path.replace("_", " ")
+        print(path)
 
 
 @app.command()
