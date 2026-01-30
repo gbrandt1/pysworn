@@ -2,6 +2,8 @@ import logging
 from collections import ChainMap
 from collections.abc import Mapping
 from string import Template
+from tkinter import N
+from turtle import ScrolledCanvas
 from typing import Any
 
 from pysworn.common import datasworn_tree
@@ -107,3 +109,124 @@ def get_id_dict(*chain: list[str]) -> dict[str, Any]:
         _attach(v, [k])  # , f"{k}:*")
 
     return merged_dict
+
+
+def depth_first_search(
+    d: dict[str, Any],
+    key: list[str],
+) -> list[Any]:
+    # print(d.keys())
+    log.debug(f"Searching for {key}")
+
+    paths = []
+
+    def _find_leaves(d: dict[str, Any], path: list[str] = []):
+        for k, v in d.items():
+            path_ = path + [k]
+            # log.debug(f"Visiting: {path_} --> {type(v)}")
+            if isinstance(v, dict):
+                _find_leaves(v, path_)
+            else:
+                # if "." not in path_[-1]:
+                #     log.debug(f"Leaf: {path_[-1]}")
+                if k == key[-1]:
+                    log.debug(f"Candidate: {path_}")
+                    paths.append(path_)
+
+    _find_leaves(d)
+    log.debug(f"Found paths: {paths}")
+
+    for i, k in enumerate(key[::-1], 1):
+        paths = [p for p in paths if p[-i] == k]
+        log.debug(f"{i} {k}: {paths}")
+
+    return paths
+
+
+def fuzzy_search(key: list[str]) -> None:
+    # from rapidfuzz import fuzz, process
+    # from textual_autocomplete.fuzzy_search import FuzzySearch
+    # from difflib import get_close_matches
+    from pysworn.repl.fuzzy import Matcher
+    from rich.style import Style
+
+    paths: dict[str, str] = {}
+    for k in index:
+        tag, path = k.split(":")
+        if "." in path:
+            continue
+        path = path.split("/")
+        path = " ".join(reversed([path[0]] + [tag] + path[1:]))
+        path = path.replace("_", " ")
+        paths[path] = k
+
+    keys = " ".join(key)
+
+    matcher = Matcher(keys, match_style=Style(bold=True), case_sensitive=False)
+    matches = []
+    for p in paths.keys():
+        score = matcher.match(p)
+        if score > 0.0:
+            matches.append((matcher.match(p), p, paths[p]))
+    matches.sort(reverse=True)
+    matches = [m for m in matches if m[0] > 10.0]
+    print(matches)
+
+    for m in matches:
+        print(matcher.highlight(m[1]))
+
+    if len(matches) > 0:
+        winner = matches[0][2]
+        log.info(f"Fuzzy winner: {winner}")
+        return winner
+
+    # matches = get_close_matches(keys, paths.keys(), n=5, cutoff=0.1)
+    # print(matches)
+
+    # fs = FuzzySearch()
+
+    # scores = []
+    # for p in paths.keys():
+    #     score, positions = fs.match(p, keys)
+    #     # if score > 0.0:
+    #     scores.append((score, p, paths[p]))
+    #     # print(f"{score:8.4} {p} --> [dim]{paths[p]}[/]")
+
+    # scores.sort(reverse=True)
+
+    # print(scores[:10])
+
+    # if len(scores) > 0:
+    #     winner = scores[0][2]
+    #     log.info(f"Fuzzy winner: {winner}")
+    #     return winner
+
+    # scores = []
+    # for p, k in paths:
+    #     score = fuzz.token_sort_ratio(keys, p)
+    #     scores.append((score, p, k))
+
+    # scores = process.extract(
+    #     keys,
+    #     paths.keys(),
+    # scorer=fuzz.partial_token_ratio,
+    # limit=None,
+    # score_cutoff=90,
+    # )
+    # if not scores:
+    #     return None
+
+    # print("Did you mean:")
+    # for key, score, _ in scores:
+    #     print(f"{score:8.4} {key} --> [dim]{paths[key]}[/]")
+
+    # if scores[0][1] == 100.0:
+    #     winner = paths[scores[0][0]]
+    #     log.info(f"Fuzzy winner: {winner}")
+    #     return winner
+
+    return None
+
+    # scores.sort(reverse=True)
+    # for score, p, k in scores[:10]:
+    #     print(f"{score:8.4} {p:30} [dim]{k}[/]")

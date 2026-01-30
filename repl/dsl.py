@@ -1,14 +1,23 @@
 import logging
 import random
+import re
+from functools import reduce
 from pathlib import Path
+from pydoc import plain
 from string import Template
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 
 import typer
 from datasworn.core.models import BaseModel
 from pysworn.common import datasworn_tree
 from pysworn.renderables import RENDERABLE_TYPES, get_renderable
-from pysworn.repl.utils import depth_first_merge, get_chain_map, get_id_dict
+from pysworn.repl.roller import get_roller
+from pysworn.repl.utils import (
+    depth_first_merge,
+    depth_first_search,
+    fuzzy_search,
+    get_id_dict,
+)
 from rich import print
 from rich.console import Console
 from rich.logging import RichHandler
@@ -19,7 +28,7 @@ from rich.traceback import install
 from rich.tree import Tree
 
 console = Console(force_terminal=True)
-install()
+install(show_locals=False)
 
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
 log = logging.getLogger(__name__)
@@ -37,100 +46,10 @@ state: dict[str, Any] = {
 }
 
 
-# class Collection(UserDict):
-#     def __init__(self, name: str, ruleset: str):
-#         self.id = f"collection:{ruleset}/{name}"
-
-# for ruleset in datasworn_tree:
-#     for k, v in vars(datasworn_tree[ruleset]).items():
-#         if isinstance(v, dict):
-#             c = Collection(k, ruleset)
-
-# setattr(datasworn_tree[ruleset], k, c)
-# datasworn_tree.index[c.id] = c
-
-
 index = datasworn_tree.index
 
 
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-
-def basemodel_getattr(self, name):
-    try:
-        contents = object.__getattribute__(self, "contents")
-        if name in contents:
-            return contents[name]
-        else:
-            raise AttributeError
-    except AttributeError:
-        pass
-    try:
-        collections = object.__getattribute__(self, "collections")
-        if name in collections:
-            return collections[name]
-        else:
-            raise AttributeError
-    except AttributeError:
-        pass
-    return object.__getattribute__(self, name)
-
-
-setattr(BaseModel, "__getattr__", basemodel_getattr)
-
-
-def basemodel_getitem(self, key) -> Any:
-    try:
-        return self.contents[key]
-    except Exception:
-        pass
-    try:
-        return self.collections[key]
-    except Exception:
-        pass
-    raise KeyError
-
-
-setattr(BaseModel, "__getitem__", basemodel_getitem)
-
-
-def get_nested_dict(index: list[str]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for _id in index:
-        if ":" not in _id or "." in _id.split(":")[1]:
-            continue
-        *nodes, last = (_id.split(":")[1]).split("/")
-        d = result
-        for k in nodes:
-            d = d.setdefault(k, {})
-        d[last] = {}
-    return result
-
-
-# def print_nested_dict(d: dict[str, Any], level: int = 0) -> None:
-# for k in d:
-#     print(f"{' ' * level}{k}")
-#     print_nested_dict(d[k], level + 2)
-
-
-def print_nested_dict(d: dict[str, Any], path: str = "") -> None:
-    for k in d:
-        if d[k]:
-            print_nested_dict(d[k], f"{path} {k}")
-        else:
-            print(f"{path} {k}")
-        # print_nested_dict(d[k], f"{path} {k}")
-
-
 def print_datasworn(obj: BaseModel, *args: Any, **kwargs: Any) -> None:
-    # renderable = RENDERABLE_TYPES.get(type(obj))
-    # if renderable:
-    #     print(Panel(renderable(obj, **kwargs), width=120))
-    # else:
-    #     print(f"No renderable found for {type(obj)}")
     print(get_renderable(obj, *args, **kwargs))
 
 
@@ -212,8 +131,32 @@ def get_object(args: list[str]) -> BaseModel | dict[str, Any] | str:
 
 
 def get_object_by_id(args: list[str]) -> BaseModel | None:
+    if not args:
+        log.error("No ID provided.")
+        return None
+
     d = state["id_dict"]
     d = depth_first_merge(*[d[k] for k in d])
+
+    # search = depth_first_search(d, args)
+    search = fuzzy_search(args)
+
+    return index.get(search, None)
+
+    # if len(search) == 1:
+    #     id_ = reduce(dict.get, search[0], d)
+    #     log.debug(f"Found ID: {id_}")
+    #     return index[id_]
+
+    # elif len(search) > 1:
+    #     log.error(f"Multiple objects found for {' '.join(args)}:")
+    #     for path in search:
+    #         print(" ".join(path[::-1]))
+    # id_ = reduce(dict.get, path, d)
+    # print(f"- {id_}")
+
+    return None
+
     for k in args:
         if k in d:
             d = d[k]
@@ -222,11 +165,6 @@ def get_object_by_id(args: list[str]) -> BaseModel | None:
             print(" ".join(d.keys()))
             return None
     return d
-
-
-COMMANDS = {
-    "view": print_datasworn,
-}
 
 
 def parse_line(line: str) -> tuple[str, list[str], dict[str, str]] | None:
@@ -239,6 +177,12 @@ def parse_line(line: str) -> tuple[str, list[str], dict[str, str]] | None:
         k: v for k, v in (item.split("=") for item in tokens[1:] if "=" in item)
     }
     return cmd, args, kwargs
+
+
+COMMANDS: dict[str, Callable[[Any], Any]] = {
+    "view": get_renderable,
+    "roll": get_roller,
+}
 
 
 def parse_dsl(dsl: str):
@@ -255,6 +199,9 @@ def parse_dsl(dsl: str):
         obj = get_object_by_id(args)
 
         match obj:
+            case BaseModel():
+                log.debug(f"Executing command '{cmd}' on {obj.id}")
+                print(COMMANDS[cmd](obj, plain=False))
             case dict():
                 print(" ".join(obj.keys()))
             case list():
@@ -280,8 +227,6 @@ def parse_dsl(dsl: str):
                 log.error("No object found.")
             case _:
                 log.error(f"Unknown object type {type(obj)}")
-            # if obj:
-            # COMMANDS[cmd](obj, **kwargs)
 
 
 @app.command()
@@ -330,13 +275,22 @@ def render_ids():
 
 
 @app.command()
-def ids(no_rows: Annotated[bool, typer.Option("-n", "--no-rows")] = False):
+def ids(
+    no_rows: Annotated[bool, typer.Option("-r", "--no-rows")] = False,
+    inverse: Annotated[bool, typer.Option("-i", "--inverse")] = False,
+    human: Annotated[bool, typer.Option("-H", "--human")] = False,
+):
     for k in index:
         tag, path = k.split(":")
-        if "." in path and no_rows:
+        if no_rows and ("." in path):
             continue
-        print(path)
+        path = path.split("/")
+        if inverse:
+            print(f"{' '.join(reversed(path[1:]))} [dim]{path[0]} {tag}")
+        else:
+            print(path)
         continue
+
         if "." in tag:
             tag = tag.split(".")[0]
         if tag == "oracle_rollable":
