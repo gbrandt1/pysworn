@@ -1,13 +1,11 @@
 import logging
 from collections import ChainMap
 from collections.abc import Mapping
-from string import Template
-from tkinter import N
-from turtle import ScrolledCanvas
 from typing import Any
 
 from pysworn.common import datasworn_tree
 from rich import print
+from rich.text import Text
 
 log = logging.getLogger(__name__)
 index = datasworn_tree.index
@@ -63,9 +61,13 @@ def depth_first_merge(*chain: dict[str, Any]) -> dict[str, Any]:
     return DeepChainMap[str, Any](*chain).to_dict()
 
 
-def get_id_dict(*chain: list[str]) -> dict[str, Any]:
+def get_id_dict(include: str, exclude: str) -> dict[str, Any]:
     nested_ids: dict[str, Any] = {}
     for id_ in index:
+        if include not in id_:
+            continue
+        if exclude in id_:
+            continue
         if "/" not in id_:
             log.warning(f"Skipping {id_}")
             continue
@@ -89,26 +91,7 @@ def get_id_dict(*chain: list[str]) -> dict[str, Any]:
                 _expand(v, p)
 
     _expand(nested_ids)
-
-    # print(nd)
     return nested_ids
-
-    cm = DeepChainMap(*[nested_ids[c] for c in chain])
-
-    def _attach(d: dict[str, Any], path: list[str] = []):
-        for k, v in d.items():
-            path_ = path + [k]
-            if len(v) == 0:
-                # ids = fnmatch.filter(list(index), "".join(path_))
-                d[k] = Template(f"{path_[0]}:$ruleset/{'/'.join(path_[1:])}")
-            else:
-                _attach(v, path_)
-
-    merged_dict = cm.to_dict()
-    for k, v in merged_dict.items():
-        _attach(v, [k])  # , f"{k}:*")
-
-    return merged_dict
 
 
 def depth_first_search(
@@ -143,13 +126,7 @@ def depth_first_search(
     return paths
 
 
-def fuzzy_search(key: list[str]) -> None:
-    # from rapidfuzz import fuzz, process
-    # from textual_autocomplete.fuzzy_search import FuzzySearch
-    # from difflib import get_close_matches
-    from pysworn.repl.fuzzy import Matcher
-    from rich.style import Style
-
+def get_flat_paths():
     paths: dict[str, str] = {}
     for k in index:
         tag, path = k.split(":")
@@ -160,73 +137,43 @@ def fuzzy_search(key: list[str]) -> None:
         path = path.replace("_", " ")
         paths[path] = k
 
+    return paths
+
+
+def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
+    from pysworn.repl.fuzzy import Matcher
+    from rich.style import Style
+
+    # paths = get_flat_paths()
+    # paths = depth_first_search(paths, key)
+
     keys = " ".join(key)
 
+    log.debug(f"looking for '{keys}' in {len(paths)} paths")
+
     matcher = Matcher(keys, match_style=Style(bold=True), case_sensitive=False)
-    matches = []
+    matches: list[Any] = []
     for p in paths.keys():
         score = matcher.match(p)
         if score > 0.0:
             matches.append((matcher.match(p), p, paths[p]))
+
+    if len(matches) == 0:
+        log.error("No fuzzy matches found.")
+        return None
+
     matches.sort(reverse=True)
     matches = [m for m in matches if m[0] > 10.0]
-    print(matches)
+    log.debug(matches)
 
-    for m in matches:
-        print(matcher.highlight(m[1]))
-
-    if len(matches) > 0:
+    if len(matches) == 1 or matches[0][0] > matches[1][0]:
         winner = matches[0][2]
-        log.info(f"Fuzzy winner: {winner}")
+        log.debug(f"Fuzzy winner: {winner}")
         return winner
 
-    # matches = get_close_matches(keys, paths.keys(), n=5, cutoff=0.1)
-    # print(matches)
-
-    # fs = FuzzySearch()
-
-    # scores = []
-    # for p in paths.keys():
-    #     score, positions = fs.match(p, keys)
-    #     # if score > 0.0:
-    #     scores.append((score, p, paths[p]))
-    #     # print(f"{score:8.4} {p} --> [dim]{paths[p]}[/]")
-
-    # scores.sort(reverse=True)
-
-    # print(scores[:10])
-
-    # if len(scores) > 0:
-    #     winner = scores[0][2]
-    #     log.info(f"Fuzzy winner: {winner}")
-    #     return winner
-
-    # scores = []
-    # for p, k in paths:
-    #     score = fuzz.token_sort_ratio(keys, p)
-    #     scores.append((score, p, k))
-
-    # scores = process.extract(
-    #     keys,
-    #     paths.keys(),
-    # scorer=fuzz.partial_token_ratio,
-    # limit=None,
-    # score_cutoff=90,
-    # )
-    # if not scores:
-    #     return None
-
-    # print("Did you mean:")
-    # for key, score, _ in scores:
-    #     print(f"{score:8.4} {key} --> [dim]{paths[key]}[/]")
-
-    # if scores[0][1] == 100.0:
-    #     winner = paths[scores[0][0]]
-    #     log.info(f"Fuzzy winner: {winner}")
-    #     return winner
+    print("\nDid you mean:\n")
+    for m in matches:
+        print(matcher.highlight(m[1]).append_text(Text(f"-->{m[2]}", style="cyan")))
+    print()
 
     return None
-
-    # scores.sort(reverse=True)
-    # for score, p, k in scores[:10]:
-    #     print(f"{score:8.4} {p:30} [dim]{k}[/]")

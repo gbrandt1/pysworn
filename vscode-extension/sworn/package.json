@@ -1,0 +1,34 @@
+{
+  "name": "sworn",
+  "displayName": "sworn",
+  "description": "Sworn Ironsworn : Starforged Script Language Support",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.108.1"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "sworn",
+        "aliases": [
+          "Sworn",
+          "sworn"
+        ],
+        "extensions": [
+          ".sworn"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sworn",
+        "scopeName": "source.sworn",
+        "path": "./syntaxes/sworn.tmLanguage.json"
+      }
+    ]
+  }
+}

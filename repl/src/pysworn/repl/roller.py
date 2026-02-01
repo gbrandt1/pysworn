@@ -82,7 +82,7 @@ log = logging.getLogger(__name__)
 class RollResult:
     roll: int
     obj: Any
-    plain: bool = True
+    plain: bool = False
 
     def __rich_console__(
         self,
@@ -114,7 +114,7 @@ def get_roller(v: BaseModel, *args: Any, **kwargs: Any):
     rollable = rollable_type(v, *args, **kwargs)
 
     def _flatten(r, level: int = 0):
-        log.debug(f"{r}")
+        # log.debug(f"{r}")
         for r_ in r:
             if isinstance(r_, RollResult):
                 # console.print(Padding(r_, pad=(0, 0, 0, level * 4)))

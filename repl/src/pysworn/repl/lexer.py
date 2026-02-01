@@ -1,8 +1,16 @@
+"""
+Lexer for Sworn script language.
+
+The lexer reuses Pygments tokens and state defintion
+for direct integration with Pygments.
+"""
+
+import logging
 import re
+from dataclasses import dataclass
+from typing import Any
 
 import rich.repr
-from pygments import highlight
-from pygments.formatters import TerminalTrueColorFormatter as TerminalFormatter
 from pygments.lexer import RegexLexer
 from pygments.styles import STYLE_MAP
 from pygments.token import (
@@ -14,18 +22,24 @@ from pygments.token import (
     String,
     Whitespace,
 )
+from pygments.token import (
+    Token as PygmentsToken,
+)
 from rich import print
 from rich.syntax import Syntax
 
+log = logging.getLogger(__name__)
+
+# TODO: use Pygments bygroups()
 triple_quoted_string = (
     r'("""(?:[^"\\]|\\.|"(?="))*"""|\'\'\'(?:[^\'\\]|\\.|\'(?=\'\'))*\'\'\')'
 )
 double_quoted_string = r'"(?:\\.|[^"\\n])*"'
 single_quoted_string = r"'([^'\\]*(?:\\.[^'\\]*)*)'"
 
+# TODO: use Pygments words()
+pragmas = ["match", "play", "seed"]
 keywords = [
-    "play",
-    "seed",
     "roll",
     "take",
     "mark",
@@ -36,120 +50,176 @@ keywords = [
     "in bad spot",
     "reset",
     "suffer",
+    "from",
 ]
+pragmas_regex = r"\b(" + "|".join(pragmas) + r")\b"
 keywords_regex = r"\b(" + "|".join(keywords) + r")\b"
 
 state = [
-    (r"#.*", Comment.Hashbang),
-    (triple_quoted_string, String.Multiline),
+    (r"--.*$", Comment),
+    (triple_quoted_string, String.Markdown),
     (double_quoted_string, String.Double),
     (single_quoted_string, String.Single),
+    (pragmas_regex, Keyword.Pragma),
     (keywords_regex, Keyword),
+    (r"[a-zA-Z]+(\s([a-zA-Z])*)*", Name.Sequence),
     (r"[a-zA-Z_]\w*", Name),
-    (r"\d+", Number.Integer),
+    (r"\d+", Number),
+    (r":=", Operator.Assignment),
+    (r"\.", Operator.Dot),
     (r"\+", Operator.Plus),
     (r"-", Operator.Minus),
     # (r"\*", "MULTIPLY"),
     # (r"/", "DIVIDE"),
-    # (r"\(", "LPAREN"),
-    # (r"\)", "RPAREN"),
-    (r"=", Operator.Assignment),
+    (r"\(", Operator.LParen),
+    (r"\)", Operator.RParen),
+    (r"=", Operator.Equal),
     (r":", Operator.Colon),
+    (r";", Operator.Semicolon),
     (r"\n", Whitespace.Newline),
-    (r"^\s+", Whitespace),  # Leading whitespace
-    (r"\s+", Whitespace),  # Ignore whitespace
+    (r"^[ \t]+\b", Whitespace.Indent),  # Leading whitespace
+    (r"[ \t]+", Whitespace),  # Ignore whitespace
 ]
 
 
-class SwornLexer(RegexLexer):
+@dataclass
+@rich.repr.auto
+class Token:
+    token_type: type
+    value: str
+    pos: int
+    line: int
+    col: int
+
+
+# lineno: int = -1  # Zero-indexed
+# end_lineno: int = -1  # Zero-indexed
+# col_offset: int = -1  # Zero-indexed, relative to the starting line
+# end_col_offset: int = -1  # Zero indexed, relative to the ending line
+
+EndOfFile = PygmentsToken.EndOfFile
+
+
+class PygmentsSwornLexer(RegexLexer):
+    """Pygments Lexer for Sworn script language."""
+
     name = "Sworn"
-    url = "https://github.com/gbrandt1/pysworn"
+    url: str = "https://github.com/gbrandt1/pysworn"
     aliases = ["sworn"]
     filenames = ["*.sworn", "*.pysworn"]
-
-    tokens = {
-        "root": state,
-    }
+    tokens = {"root": state}
 
 
 @rich.repr.auto
 class Lexer:
-    def __init__(self, rules):
+    """Lexer for Sworn script language."""
+
+    def __init__(self, rules) -> None:
         self.rules = rules
+
         # Compile regex patterns with named groups
-        regex_parts = []
-        self.group_type = {}
+        regex_parts: list[str] = []
+        self.group_type: dict[str, Any] = {}
         for idx, (regex, token_type) in enumerate(rules):
             groupname = f"GROUP{idx}"
             regex_parts.append(f"(?P<{groupname}>{regex})")
             self.group_type[groupname] = token_type
         self.regex = re.compile("|".join(regex_parts), re.MULTILINE)
 
-    def tokenize(self, text: str) -> list[tuple[str, str, int]]:
+        # self.tokens: list[tuple[type, str, int, int, int]] = []
+        self.tokens: list[Token] = []
+
+    def tokenize(self, text: str) -> list[Token]:
+        """Tokenize a string into a list of (token_type, value, position) tuples."""
+        # TODO: Add line and column tracking, indentation stack
         pos = 0
-        tokens = []
+        line = 1
+        col = 0
+
         while pos < len(text):
             match = self.regex.match(text, pos)
+
             if not match:
-                msg = f"Unexpected character at position {pos}"
+                msg = f"Unexpected character in line {line} at column {col}"
                 raise ValueError(msg)
             groupname = match.lastgroup
+            if not groupname:
+                raise ValueError()
+
             token_type = self.group_type[groupname]
-            # if token_type is None:
-            #     pos = match.end()
-            #     continue  # Skip tokens like whitespace
             value = match.group(groupname)
-            tokens.append((token_type, value, pos))
+            if token_type == Whitespace.Newline:
+                line += 1
+                col = 0
+            if token_type == String.Markdown:
+                line += value.count("\n")
+            col += len(value)
+            self.tokens.append(Token(token_type, value, pos, line, col))
             pos = match.end()
-            print(tokens[-1])
-        return tokens
+            log.debug(self.tokens[-1])
+
+        self.tokens.append(Token(EndOfFile, "", pos, line, 0))
+        # log.debug(self.tokens[-1])
+        return self.tokens
+
+    def clean_tokens(self) -> list[Token]:
+        return [
+            t
+            for t in self.tokens
+            if t.token_type not in Whitespace and t.token_type not in Comment
+        ]
 
 
 lexer = Lexer(state)
 
-# print(lexer)
 
-tokens = lexer.tokenize("""
-seed 12434231 # for reproducibility
-play starsmith starforged
+def print_untokenize(tokens: list[Any]):
+    untokenized = ""
+    for token in tokens:
+        untokenized += token.value
+    # print("Untokenized:")
+    # print(untokenize)
 
-'''# Starforged Session
+    # print(STYLE_MAP.keys())
+    # print("Pygments Highlighted:")
+    # print(highlight(untokenize, SwornLexer(), TerminalFormatter(style="monokai")))
 
-Sworn DSL Example
-'''
+    syntax = Syntax(
+        untokenized,
+        PygmentsSwornLexer(),
+        # theme="gruvbox-dark",
+        theme="fruity",
+        line_numbers=True,
+    )
+    print(syntax)
 
-face_danger
-action roll +2
 
-roll family name
+def try_lexer():
+    text = ""
+    with open("example.sworn", "r") as f:
+        text = f.read()
 
-nazari = creature
-  name = 'Varou'
-  health = 3
-  
-in control
-take_decisive_action
-mark progress on 
-nazari
-""")
-for token in tokens:
-    print(token)
+    try:
+        lexer.tokenize(text)
+    except ValueError as e:
+        print(f"\n{e}")
+        line = lexer.tokens[-1].line - 1
+        col = lexer.tokens[-1].col - 1
+        print(f"[red]{text.split('\n')[line]}\n{' ' * col}^")
+        return
+    print_untokenize(lexer.tokens)
 
-untokenize = ""
-for token in tokens:
-    untokenize += token[1]  # Append the token value (index 1) to the untokenized string
 
-print("Untokenized:")
-print(untokenize)
+if __name__ == "__main__":
+    from rich.logging import RichHandler
 
-print(STYLE_MAP.keys())
-print("Pygments Highlighted:")
-# print(highlight(untokenize, SwornLexer(), TerminalFormatter(style="monokai")))
+    logging.basicConfig(
+        level="DEBUG",
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[RichHandler(rich_tracebacks=True)],
+    )
 
-syntax = Syntax(
-    untokenize,
-    SwornLexer(),
-    theme="gruvbox-dark",
-    line_numbers=True,
-)
-print(syntax)
+    # log.debug(lexer)
+
+    try_lexer()

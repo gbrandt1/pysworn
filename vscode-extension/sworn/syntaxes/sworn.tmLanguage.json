@@ -1,0 +1,86 @@
+{
+  "scopeName": "source.sworn",
+  "name": "Sworn",
+  "fileTypes": [
+    "sworn"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#markdown-block"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#identifiers"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#digits"
+    },
+    {
+      "include": "#commas"
+    }
+  ],
+  "repository": {
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(burn|roll|take|suffer|mark)\\b",
+          "name": "keyword.control.sworn"
+        },
+        {
+          "match": "\\b(play|seed)\\b",
+          "name": "support.function.builtin.sworn"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.sworn",
+          "patterns": []
+        }
+      ]
+    },
+    "digits": {
+      "patterns": [
+        {
+          "match": "\\b[0-9]+(?:.[0-9]+)\\b",
+          "name": "constant.numeric.sworn"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "match": "\\b[a-zA-Z_-][a-zA-Z0-9_-]*\\b",
+          "name": "variable.other.readwrite.sworn"
+        }
+      ]
+    },
+    "commas": {
+      "patterns": [
+        {
+          "match": ",",
+          "name": "punctuation.separator.list.comma.sworn"
+        }
+      ]
+    },
+    "markdown-block": {
+      "match": "\"{3}([\\s\\S]*?\"{3})",
+      "name": "markdown.block.sworn"
+    },
+    "comments": {
+      "match": "--.*$",
+      "name": "comment.line.sworn"
+    }
+  }
+}
