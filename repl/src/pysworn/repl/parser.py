@@ -57,28 +57,18 @@ class Parser:
     def parse(self) -> list[Expr] | None:
         """Parse the list of tokens and return the corresponding AST."""
 
-        # statements: list[Expr] = []
-        # while not self._is_eof():
-        #     statements.append(self._declaration())
-        # return statements
-
-        # try:
         statements: list[Expr] = []
         while not self._is_eof():
             stmt = self._statement()
             statements.append(stmt)
             log.info(stmt)
-
-        # except ParseException:
-        #     return None
         return statements
 
     def _is_eof(self) -> bool:
-        return self._peek().token_type in EndOfFile
+        return self._peek().token_type is EndOfFile
 
     def _advance(self) -> Token:
         """Return the next token to be consumed by the parser & advance the pointer location."""
-        log.debug(f"_advance_: {self._peek()}")
         if not self._is_eof():
             self._current += 1
         return self._previous()
@@ -101,7 +91,7 @@ class Parser:
         # log.debug(f"Checking {self._peek().token_type} against {query_token_type}")
         return self._peek().token_type is query_token_type
 
-    def _peek(self) -> type:
+    def _peek(self) -> Token:
         """Return the current token we have yet to consume."""
         return self.tokens[self._current]
 
@@ -153,16 +143,17 @@ class Parser:
             self._synchronize()
 
     def _statement(self):
-        if self._match(String.Markdown):
-            log.debug("Found Markdown:")
+        if self._match(String.Doc):
+            log.debug("Found doc string, render as Markdown:")
             md = self._previous().value[3:-3]  # strip markdown delimiters
+            self._consume(Operator.Semicolon, "Expected ';' after pragma.")
             return MarkdownBlock(md)
 
-        if self._match(Keyword.Pragma):
+        if self._match(Keyword.Reserved):
             log.debug(f"Found Pragma: {self._previous().value}")
             pragma = self._previous().value
 
-            if self._match(Name.Sequence, Number):
+            if self._match(String.Symbol, Number):
                 log.debug(f"Found Value: {self._previous().value}")
                 value = self._previous().value
             else:
@@ -174,10 +165,11 @@ class Parser:
             log.debug(f"Found Keyword: {self._previous().value}")
             keyword = self._previous().value
 
-            if self._match(Name.Sequence, Number):
+            if self._match(String.Symbol, Number):
                 log.debug(f"Found Value: {self._previous().value}")
                 value = self._previous().value
-
+            else:
+                raise ParseException("Expected value after keyword.")
             self._consume(Operator.Semicolon, "Expected ';' after keyword.")
             return KeywordStmt(keyword, value)
 
@@ -195,11 +187,6 @@ class Parser:
         return self._unary()
 
     def _unary(self) -> Expr:
-        """
-        Parse the unary grammar.
-
-        `unary: ( "!" | "-" ) unary | call`
-        """
         if self._match(Operator.Minus, Operator.Plus):
             operator = self._previous()
             right = self._unary()
@@ -209,18 +196,6 @@ class Parser:
         return self._primary()
 
     def _primary(self) -> Expr:
-        """
-        Parse the primary grammar.
-
-        ```
-        primary:
-            | NUMBER
-            | STRING
-            | IDENTIFIER
-            | "(" expression ")"
-        ```
-        """
-
         if self._match(Number):
             log.debug(f"Found Number: {self._previous().value}")
             return Literal(self._previous().value)
@@ -234,44 +209,44 @@ class Parser:
         #     self._consume(Operator.RParen, "Expected ')' after expression.")
         #     return Grouping(expr)
 
-        if self._match(Name.Sequence):
+        if self._match(String.Symbol):
             return SequenceExpr(self._previous())
 
         self._report_error(ParseError(self._peek(), "Expected expression."))
 
 
-if __name__ == "__main__":
-    from rich.logging import RichHandler
+# if __name__ == "__main__":
+#     from rich.logging import RichHandler
 
-    FORMAT = "%(message)s"
+#     FORMAT = "%(message)s"
 
-    logging.basicConfig(
-        level="DEBUG",
-        format=FORMAT,
-        datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)],
-    )
+#     logging.basicConfig(
+#         level="DEBUG",
+#         format=FORMAT,
+#         datefmt="[%X]",
+#         handlers=[RichHandler(rich_tracebacks=True)],
+#     )
 
-    logging.getLogger("markdown_it").setLevel(logging.WARNING)
-    logging.basicConfig(level=logging.DEBUG)
+#     logging.getLogger("markdown_it").setLevel(logging.WARNING)
+#     logging.basicConfig(level=logging.DEBUG)
 
-    from pysworn.repl.lexer import lexer
+#     from pysworn.repl.lexer import lexer
 
-    text = ""
-    with open("example.sworn", "r") as f:
-        text = f.read()
-    lexer.tokenize(text)
-    tokens = lexer.clean_tokens()
+#     text = ""
+#     with open("example.sworn", "r") as f:
+#         text = f.read()
+#     lexer.tokenize(text)
+#     tokens = lexer.clean_tokens()
 
-    # clean up before parsing
+#     # clean up before parsing
 
-    # print("Cleaned tokens:")
-    # for t in tokens:
-    #     print(t)
+#     # print("Cleaned tokens:")
+#     # for t in tokens:
+#     #     print(t)
 
-    # convert to Token dataclass
-    # tokens = [PyswornToken(token_type=t[0], lexeme=t[1]) for t in tokens]
+#     # convert to Token dataclass
+#     # tokens = [PyswornToken(token_type=t[0], lexeme=t[1]) for t in tokens]
 
-    parser = Parser(tokens)
-    ast = parser.parse()
-    print(ast)
+#     parser = Parser(tokens)
+#     ast = parser.parse()
+#     print(ast)

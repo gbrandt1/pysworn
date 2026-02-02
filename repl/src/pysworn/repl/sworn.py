@@ -56,8 +56,6 @@ class Sworn:
             self.had_runtime_error = False
 
     def run(self, src: str):
-        # print(self.interpreter.interpret(src), end="")
-
         lexer = Lexer()
         lexer.tokenize(src)
 
@@ -71,10 +69,9 @@ class Sworn:
             return
 
         if self.show_lexer:
-            print("Lexer Output:")
-            print(lexer.tokens)
             print("\nCleaned Tokens:\n")
             print(tokens)
+            return
 
         parser = Parser(tokens)
         stmts = parser.parse()
@@ -97,6 +94,9 @@ class Sworn:
         from rich.columns import Columns
 
         print(Columns(results))
+
+        # for result in results:
+        #     print(f"{type(result)}")
 
 
 @app.command()

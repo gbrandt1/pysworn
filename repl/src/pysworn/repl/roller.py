@@ -2,12 +2,7 @@ import logging
 import random
 from collections.abc import Generator
 from dataclasses import dataclass
-from encodings.punycode import T
-from gc import collect
 from inspect import getfullargspec
-from pydoc import plain
-from re import A, S
-from tkinter import N
 from typing import (
     Any,
     ClassVar,
@@ -18,45 +13,11 @@ from typing import (
 )
 
 from datasworn.core.models import (
-    Asset,
-    AssetAbility,
-    AssetCollection,
-    AtlasCollection,
-    AtlasEntry,
     BaseModel,
-    ChallengeRank,
-    DelveSite,
-    DelveSiteDenizen,
-    DelveSiteDomain,
-    DelveSiteDomainDanger,
-    DelveSiteDomainFeature,
-    DelveSiteTheme,
-    DelveSiteThemeDanger,
-    DelveSiteThemeFeature,
-    EmbeddedActionRollMove,
-    EmbeddedMove,
-    EmbeddedOracleColumnText,
-    EmbeddedOracleRollable,
-    EmbeddedOracleTableText,
-    EmbeddedSpecialTrackMove,
-    Expansion,
-    MoveActionRoll,
-    MoveCategory,
-    MoveNoRoll,
-    MoveOutcome,
-    MoveProgressRoll,
-    MoveSpecialTrack,
-    Npc,
-    NpcCollection,
-    NpcVariant,
     OracleColumnText,
     OracleColumnText2,
     OracleColumnText3,
     OracleRoll,
-    OracleRollable,
-    OracleRollableRowText,
-    OracleRollableRowText2,
-    OracleRollableRowText3,
     OracleTablesCollection,
     OracleTableSharedRolls,
     OracleTableSharedText,
@@ -64,19 +25,10 @@ from datasworn.core.models import (
     OracleTableText,
     OracleTableText2,
     OracleTableText3,
-    Rarity,
-    Rules,
-    Ruleset,
-    TriggerActionRollCondition,
-    TriggerProgressRollCondition,
-    TriggerSpecialTrackCondition,
-    Truth,
-    TruthOption,
 )
 from pysworn.renderables import get_renderable
-from rich import console
+from rich.console import Group
 from rich.table import Table
-from rich.text import Text
 
 # from rich.console import Console
 # console = Console()
@@ -102,25 +54,24 @@ class RollResult:
         path = self.obj.id.split(":")[1].replace("_", " ").title().split("/")
         path[-1] = path[-1].replace(".", ", ")
         path_ = " > ".join(path[1:]) + f" ({path[0]})"
-        left = f"[b]{self.roll:>4}[/]: {self.obj.text}"
-        t = Table.grid(expand=True)
-        t.add_column(justify="left", overflow="fold")
-        t.add_column(justify="right", style="log.path")
-        t.add_row(left, path_)
+
+        t = Table.grid(padding=(0, 1), expand=True)
+        t.add_column(justify="right", width=4)
+        t.add_column(ratio=1, overflow="fold")
+        t.add_column(style="log.path")
+        t.add_row(f"[b]{self.roll}[/]:", f"{self.obj.text}", path_)
+
         yield t
 
 
-def get_roller(v: BaseModel, *args: Any, **kwargs: Any):
-    from rich.console import Console
-
-    console = Console()
-
+def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType:
     rollable_type = Roller.Registry.get(type(v))
     log.debug(f"Roller for type: {type(v)} -> {rollable_type}")
 
     if not rollable_type:
-        log.error(f"Can't roll on {type(v)}")
-        return ""
+        return f"Can't roll on {type(v)}"
+
+    results: list[RollResult] = []
 
     rollable = rollable_type(v, *args, **kwargs)
 
@@ -129,7 +80,8 @@ def get_roller(v: BaseModel, *args: Any, **kwargs: Any):
         for r_ in r:
             if isinstance(r_, RollResult):
                 # console.print(Padding(r_, pad=(0, 0, 0, level * 4)))
-                console.print(r_)
+                # console.print(r_)
+                results.append(r_)
             elif isinstance(r_, Roller):
                 _flatten(r_, level + 1)
             else:
@@ -137,7 +89,7 @@ def get_roller(v: BaseModel, *args: Any, **kwargs: Any):
 
     _flatten(rollable)
 
-    return ""
+    return Group(*results)
 
 
 class Roller(Generator):
