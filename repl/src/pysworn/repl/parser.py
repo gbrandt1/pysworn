@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from token import OP
 from typing import Any
 
 from pygments.token import (
@@ -127,14 +128,28 @@ class Parser:
         msg = f"{err.token!r} {err.message}"
         raise ParseException(msg)
 
+    def _synchronize(self) -> None:
+        self._advance()
+
+        while not self._is_eof():
+            if self._previous().token_type == Operator.Semicolon:
+                return
+
+            match self._peek().token_type:
+                # case Whitespace:
+                #     self._advance()
+                # case Comment:
+                #     self._advance()
+                case _:
+                    return
+
+            self._advance()
+
     def _declaration(self) -> Any:
         try:
             return self._statement()
         except ParseException:
             self._synchronize()
-
-    def _synchronize(self) -> None:
-        self._advance()
 
     def _statement(self):
         if self._match(String.Markdown):

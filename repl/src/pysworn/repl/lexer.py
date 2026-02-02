@@ -114,7 +114,7 @@ class PygmentsSwornLexer(RegexLexer):
 class Lexer:
     """Lexer for Sworn script language."""
 
-    def __init__(self, rules) -> None:
+    def __init__(self, rules=state) -> None:
         self.rules = rules
 
         # Compile regex patterns with named groups

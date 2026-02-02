@@ -1,5 +1,3 @@
-import datetime
-import enum
 import logging
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -7,13 +5,15 @@ from importlib.resources import files
 from typing import Any
 
 from datasworn.core.models import Expansion, Ruleset
-from pydantic import AnyUrl, BaseModel
+from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 
 DATASWORN_JSON_SOURCES: dict[str, tuple[str, type[Expansion] | type[Ruleset]]] = {
     "classic": ("datasworn", Ruleset),
     "delve": ("datasworn", Expansion),
+    "lodestar": ("datasworn", Expansion),
+    "ironsmith": ("datasworn_community_content", Expansion),
     "starforged": ("datasworn", Ruleset),
     "sundered_isles": ("datasworn", Expansion),
     "ancient_wonders": ("datasworn_community_content", Expansion),
@@ -104,7 +104,7 @@ if __name__ == "__main__":
     from rich.console import Console
 
     console = Console(force_terminal=True)
-    # for k in datasworn_tree:
-    k = "starforged"
-    t = datasworn_tree[k]
-    console.print(t)
+    for k in datasworn_tree:
+        print(k)
+        t = datasworn_tree[k]
+        console.print(t)

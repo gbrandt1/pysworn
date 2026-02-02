@@ -138,36 +138,3 @@ class Interpreter:
                 pass
             case _:
                 raise PragmaError(expr.name, f"Unknown pragma: {expr.name.value}")
-
-
-if __name__ == "__main__":
-    from rich.logging import RichHandler
-
-    logging.basicConfig(
-        level="INFO",
-        # level="INFO",
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)],
-    )
-    logging.getLogger("markdown_it").setLevel(logging.WARNING)
-    logging.basicConfig(level=logging.DEBUG)
-
-    from pysworn.repl.lexer import lexer
-    from pysworn.repl.parser import Parser
-
-    text = ""
-    with open("example.sworn", "r") as f:
-        text = f.read()
-    lexer.tokenize(text)
-    tokens = lexer.clean_tokens()
-    parser = Parser(tokens)
-    stmts = parser.parse()
-
-    if not stmts:
-        print("No statements found.")
-        exit(1)
-
-    interpreter = Interpreter()
-    interpreter.interpret(stmts)
-    # print(results)

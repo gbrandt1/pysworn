@@ -2,14 +2,13 @@
 
 ## Examples
 
-$ view truth medicine
-
 ## Tokens
 
 - keywords
-  - pragmas
+  - pragmas [ ] move to configuration
     - play [rulesetN] ... [ruleset1] # which rulesets to load
-    - seed [int]
+    - seed [int] # initialize random number generator
+    - match [fuzzy|exact] # how to match rules
   - rules
     - action_roll
     - progress_roll
