@@ -8,6 +8,10 @@ for direct integration with Pygments.
 import logging
 import re
 from dataclasses import dataclass
+from encodings.punycode import T
+from math import e
+from operator import ne
+from tkinter import W
 from typing import Any
 
 import rich.repr
@@ -62,7 +66,7 @@ state = [
     (single_quoted_string, String.Single),
     (pragmas_regex, Keyword.Pragma),
     (keywords_regex, Keyword),
-    (r"[a-zA-Z]+(\s([a-zA-Z])*)*", Name.Sequence),
+    (r"[a-zA-Z]+([ \t]+([a-zA-Z])+)*", Name.Sequence),
     (r"[a-zA-Z_]\w*", Name),
     (r"\d+", Number),
     (r":=", Operator.Assignment),
@@ -159,18 +163,28 @@ class Lexer:
             log.debug(self.tokens[-1])
 
         self.tokens.append(Token(EndOfFile, "", pos, line, 0))
-        # log.debug(self.tokens[-1])
         return self.tokens
 
     def clean_tokens(self) -> list[Token]:
-        return [
-            t
-            for t in self.tokens
-            if t.token_type not in Whitespace and t.token_type not in Comment
-        ]
-
-
-lexer = Lexer(state)
+        # strip comments
+        tokens = [t for t in self.tokens if t.token_type not in Comment]
+        # collapes semicolons and newlines
+        tokens_ = []
+        semicolon = False
+        for t in tokens:
+            if not semicolon and (
+                t.token_type is Operator.Semicolon or t.token_type is Whitespace.Newline
+            ):
+                t.token_type = Operator.Semicolon
+                t.value = ";"
+                tokens_.append(t)
+                semicolon = True
+            elif t.token_type in Whitespace:
+                continue
+            else:
+                tokens_.append(t)
+                newline = False
+        return tokens_
 
 
 def print_untokenize(tokens: list[Any]):
@@ -188,13 +202,14 @@ def print_untokenize(tokens: list[Any]):
         untokenized,
         PygmentsSwornLexer(),
         # theme="gruvbox-dark",
-        theme="fruity",
+        # theme="fruity",
         line_numbers=True,
     )
     print(syntax)
 
 
 def try_lexer():
+    lexer = Lexer(state)
     text = ""
     with open("example.sworn", "r") as f:
         text = f.read()

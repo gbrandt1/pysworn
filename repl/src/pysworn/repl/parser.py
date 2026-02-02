@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from tkinter import W
 from token import OP
 from typing import Any
 
@@ -73,7 +74,7 @@ class Parser:
         return statements
 
     def _is_eof(self) -> bool:
-        return self._peek().token_type == EndOfFile
+        return self._peek().token_type in EndOfFile
 
     def _advance(self) -> Token:
         """Return the next token to be consumed by the parser & advance the pointer location."""
@@ -85,7 +86,7 @@ class Parser:
     def _match(self, *query_token_types: type) -> bool:
         """Check if the current token matches any of the query token type(s)."""
 
-        # log.debug(f"Matching {query_token_types} against {self._peek()}")
+        log.debug(f"Matching {query_token_types} against {self._peek()}")
 
         if any((self._check(query_token) for query_token in query_token_types)):
             self._advance()
@@ -160,16 +161,19 @@ class Parser:
         if self._match(Keyword.Pragma):
             log.debug(f"Found Pragma: {self._previous().value}")
             pragma = self._previous().value
+
             if self._match(Name.Sequence, Number):
                 log.debug(f"Found Value: {self._previous().value}")
                 value = self._previous().value
-
+            else:
+                value = None
             self._consume(Operator.Semicolon, "Expected ';' after pragma.")
             return Pragma(pragma, value)
 
         if self._match(Keyword):
             log.debug(f"Found Keyword: {self._previous().value}")
             keyword = self._previous().value
+
             if self._match(Name.Sequence, Number):
                 log.debug(f"Found Value: {self._previous().value}")
                 value = self._previous().value

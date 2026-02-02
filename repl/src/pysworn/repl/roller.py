@@ -2,6 +2,7 @@ import logging
 import random
 from collections.abc import Generator
 from dataclasses import dataclass
+from encodings.punycode import T
 from gc import collect
 from inspect import getfullargspec
 from pydoc import plain
@@ -73,7 +74,12 @@ from datasworn.core.models import (
     TruthOption,
 )
 from pysworn.renderables import get_renderable
-from rich import console, inspect, print
+from rich import console
+from rich.table import Table
+from rich.text import Text
+
+# from rich.console import Console
+# console = Console()
 
 log = logging.getLogger(__name__)
 
@@ -93,10 +99,15 @@ class RollResult:
             yield get_renderable(self.obj)
             return
 
-        path = self.obj.id.split(":")[1].split("/")
+        path = self.obj.id.split(":")[1].replace("_", " ").title().split("/")
+        path[-1] = path[-1].replace(".", ", ")
         path_ = " > ".join(path[1:]) + f" ({path[0]})"
-        pad = console.width - len(self.obj.text) - len(path_) - 12
-        yield f"{self.roll:>4}: {self.obj.text}{' ' * pad}[dim]{path_}[/dim]"
+        left = f"[b]{self.roll:>4}[/]: {self.obj.text}"
+        t = Table.grid(expand=True)
+        t.add_column(justify="left", overflow="fold")
+        t.add_column(justify="right", style="log.path")
+        t.add_row(left, path_)
+        yield t
 
 
 def get_roller(v: BaseModel, *args: Any, **kwargs: Any):

@@ -144,9 +144,6 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
     from pysworn.repl.fuzzy import Matcher
     from rich.style import Style
 
-    # paths = get_flat_paths()
-    # paths = depth_first_search(paths, key)
-
     keys = " ".join(key)
 
     log.debug(f"looking for '{keys}' in {len(paths)} paths")
@@ -171,9 +168,17 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
         log.debug(f"Fuzzy winner: {winner}")
         return winner
 
-    print("\nDid you mean:\n")
-    for m in matches:
-        print(matcher.highlight(m[1]).append_text(Text(f"-->{m[2]}", style="cyan")))
-    print()
+    from rich.table import Table
 
+    print("\nDid you mean:\n")
+    t = Table.grid(padding=(0, 1), expand=True)
+    t.add_column(justify="left", overflow="fold")
+    t.add_column(justify="right", style="log.path")
+    for m in matches:
+        path = m[2].split(":")[1].replace("_", " ").title().split("/")
+        path[-1] = path[-1].replace(".", ", ")
+        path_ = " > ".join(path[1:]) + f" ({path[0]})"
+
+        t.add_row(matcher.highlight(m[1]), path_)
+    print(t)
     return None

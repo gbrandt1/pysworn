@@ -40,13 +40,16 @@ class Interpreter:
             for stmt in statements:
                 result = self.visit(stmt)
                 if result:
-                    print(result)
                     results.append(result)
         except Exception as e:
             log.error(e)
         return results
 
     def get_reference_object(self, name: str):
+        paths = state.get("paths", None)
+        if not paths:
+            msg = "No references found. Did you say which ruleset(s) to play?"
+            raise InterpreterError(msg)
         winner = fuzzy_search([name], state["paths"])
         if not winner:
             raise InterpreterError(f"Can't find reference: {name}")
@@ -103,35 +106,41 @@ class Interpreter:
                 )
 
             case "play":
-                play = expr.values.split(" ")
-                state["rulesets"] = play
-                for p in play:
-                    # trigger lazy-loading
-                    datasworn_tree[p]
+                if not expr.values:
+                    print(f"Playing {' '.join(state['rulesets'])}")
+                # TODO: use _MatchBreak exception
+                else:
+                    play = expr.values.split(" ")
+                    state["rulesets"] = play
+                    for p in play:
+                        # trigger lazy-loading
+                        datasworn_tree[p]
 
-                # nested id dicts for each ruleset
-                idd = [get_id_dict(p, exclude=".")[p] for p in play]
-                # print(idd)
-                # merged nested id dicts
-                merged = depth_first_merge(*idd)
-                # print(merged)
-                paths = {}
+                    # nested id dicts for each ruleset
+                    idd = [get_id_dict(p, exclude=".")[p] for p in play]
+                    # print(idd)
+                    # merged nested id dicts
+                    merged = depth_first_merge(*idd)
+                    # print(merged)
+                    paths = {}
 
-                # flatten id dict
-                def _flatten(d: dict[str, Any], path: str = ""):
-                    for k, v in d.items():
-                        path_ = f"{k} {path}"
-                        if isinstance(v, dict):
-                            _flatten(v, path_)
-                        else:
-                            path_ = (
-                                path_.strip().replace("_rollable", "").replace("_", " ")
-                            )
-                            paths[path_] = v
+                    # flatten id dict
+                    def _flatten(d: dict[str, Any], path: str = ""):
+                        for k, v in d.items():
+                            path_ = f"{k} {path}"
+                            if isinstance(v, dict):
+                                _flatten(v, path_)
+                            else:
+                                path_ = (
+                                    path_.strip()
+                                    .replace("_rollable", "")
+                                    .replace("_", " ")
+                                )
+                                paths[path_] = v
 
-                _flatten(merged)
-                # print(paths)
-                state["paths"] = paths
+                    _flatten(merged)
+                    # print(paths)
+                    state["paths"] = paths
 
             case "match":
                 # log.info(f"Matching set to {expr.values}")
