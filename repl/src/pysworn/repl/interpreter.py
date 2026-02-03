@@ -5,6 +5,8 @@ from typing import Any
 
 from pysworn.common import datasworn_tree
 from pysworn.renderables import get_renderable
+from rich import print
+
 from pysworn.repl.expr import (
     Expr,
     KeywordStmt,
@@ -14,7 +16,6 @@ from pysworn.repl.expr import (
 )
 from pysworn.repl.roller import get_roller
 from pysworn.repl.utils import depth_first_merge, fuzzy_search, get_id_dict
-from rich import print
 
 log = logging.getLogger(__name__)
 
@@ -77,6 +78,9 @@ class Interpreter:
     def _(self, stmt: KeywordStmt) -> Any:
         log.debug(stmt.name)
         match stmt.name:
+            case "print":
+                return self.get_reference_object(stmt.value)
+
             case "roll":
                 # print(stmt)
                 obj = self.get_reference_object(stmt.value)

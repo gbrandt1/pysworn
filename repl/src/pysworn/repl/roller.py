@@ -13,7 +13,10 @@ from typing import (
 )
 
 from datasworn.core.models import (
+    AssetCollection,
+    AtlasCollection,
     BaseModel,
+    NpcCollection,
     OracleColumnText,
     OracleColumnText2,
     OracleColumnText3,
@@ -25,9 +28,10 @@ from datasworn.core.models import (
     OracleTableText,
     OracleTableText2,
     OracleTableText3,
+    Truth,
 )
-from pysworn.renderables import get_renderable
-from rich.console import Group
+from pysworn.renderables import TruthOptionRenderable, get_renderable
+from rich.console import Console, ConsoleOptions, RenderableType, RenderResult
 from rich.table import Table
 
 # from rich.console import Console
@@ -64,6 +68,7 @@ class RollResult:
         yield t
 
 
+# @group()
 def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType:
     rollable_type = Roller.Registry.get(type(v))
     log.debug(f"Roller for type: {type(v)} -> {rollable_type}")
@@ -74,22 +79,22 @@ def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType:
     results: list[RollResult] = []
 
     rollable = rollable_type(v, *args, **kwargs)
+    return rollable
 
-    def _flatten(r, level: int = 0):
-        # log.debug(f"{r}")
-        for r_ in r:
-            if isinstance(r_, RollResult):
-                # console.print(Padding(r_, pad=(0, 0, 0, level * 4)))
-                # console.print(r_)
-                results.append(r_)
-            elif isinstance(r_, Roller):
-                _flatten(r_, level + 1)
-            else:
-                log.error(f"Unknown rollable result: {r_}")
+    # def _flatten(r, level: int = 0):
+    #     # log.debug(f"{r}")
+    #     for r_ in r:
+    #         if isinstance(r_, RollResult):
+    #             # console.print(Padding(r_, pad=(0, 0, 0, level * 4)))
+    #             # console.print(r_)
+    #             results.append(r_)
+    #         elif isinstance(r_, Roller):
+    #             _flatten(r_, level + 1)
+    #         else:
+    #             log.error(f"Unknown rollable result: {r_}")
 
-    _flatten(rollable)
-
-    return Group(*results)
+    # _flatten(rollable)
+    # return Group(*results)
 
 
 class Roller(Generator):
@@ -144,10 +149,10 @@ class CollectionRoller(Roller):
         collection: OracleTablesCollection
         | OracleTableSharedRolls
         | OracleTableSharedText
-        | OracleTableSharedText2,
-        # | NpcCollection
-        # | AssetCollection
-        # | AtlasCollection,
+        | OracleTableSharedText2
+        | NpcCollection
+        | AssetCollection
+        | AtlasCollection,
         *args: Any,
         **kwargs: Any,
     ):
@@ -158,14 +163,17 @@ class CollectionRoller(Roller):
         self.args = args
         self.kwargs = kwargs
 
-    def send(self, *args: Any, **kwargs: Any) -> Any:
-        if v := next(self.content):
-            return OracleRoller(v, *self.args, **self.kwargs)
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        while v := next(self.content):
+            yield OracleRoller(v, *self.args, **self.kwargs)
+
         if not self.collections:
-            raise StopIteration
-        if v := next(self.collections):
-            return CollectionRoller(v, *self.args, **self.kwargs)
-        raise StopIteration
+            return
+
+        while v := next(self.collections):
+            yield CollectionRoller(v, *self.args, **self.kwargs)
 
 
 class OracleRoller(Roller):
@@ -196,23 +204,39 @@ class OracleRoller(Roller):
                 except KeyError:
                     log.error(f"Unknown oracle: {oracle_roll.oracle} in {oracle_rolls}")
 
-    def send(
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        self.number_of_rolls, self.dice = self.oracle.dice.split("d")
+        roll = random.randint(1, int(self.dice))
+        row = None
+        for n in range(int(self.number_of_rolls)):
+            for row in self.oracle.rows:
+                if row.roll and row.roll.min <= roll <= row.roll.max:
+                    yield RollResult(roll=roll, obj=row, **self.kwargs)
+
+
+class TruthRoller(Roller):
+    def __init__(
         self,
+        truth: Truth,
         *args: Any,
         **kwargs: Any,
-    ) -> RollResult:
-        if self.number_of_rolls == 0:
-            raise StopIteration
-        self.number_of_rolls -= 1
-        roll = random.randint(1, self.dice)
-        row = None
-        for row in self.oracle.rows:
-            if row.roll and row.roll.min <= roll <= row.roll.max:
-                # if oracle_rolls := row.oracle_rolls:
-                #     yield from self._oracle_rolls(oracle_rolls)
-                # else:
-                break
-        return RollResult(roll=roll, obj=row, **self.kwargs)
+    ):
+        self.truth = truth
+        self.args = args
+        self.kwargs = kwargs
+        self.number_of_rolls, self.dice = self.truth.dice.split("d")
+
+    def __rich_console__(
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> RenderResult:
+        roll = random.randint(1, int(self.dice))
+        for option in self.truth.options:
+            if option.roll and option.roll.min <= roll <= option.roll.max:
+                yield TruthOptionRenderable(option, **self.kwargs)
 
 
 # class OracleRollable

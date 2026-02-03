@@ -41,6 +41,7 @@ single_quoted_string = r"'([^'\\]*(?:\\.[^'\\]*)*)'"
 # TODO: use Pygments words()
 pragmas = ["match", "play", "seed"]
 keywords = [
+    "print",
     "roll",
     "take",
     "mark",
@@ -164,23 +165,30 @@ class Lexer:
 
     def clean_tokens(self) -> list[Token]:
         # strip comments
-        tokens = [t for t in self.tokens if t.token_type not in Comment]
+        # tokens = [t for t in self.tokens if t.token_type not in Comment]
         # merges semicolons and newlines
         tokens_ = []
         semicolon = False
-        for t in tokens:
-            if not semicolon and (
-                t.token_type is Operator.Semicolon or t.token_type is Generic.Newline
-            ):
-                t.token_type = Operator.Semicolon
-                t.value = ";"
-                tokens_.append(t)
-                semicolon = True
-            elif t.token_type is Generic.Newline or t.token_type is Whitespace:
+        line = ""
+        for t in self.tokens:
+            if t.token_type is Comment:
                 continue
-            else:
-                tokens_.append(t)
-                semicolon = False
+
+            if t.token_type is Whitespace:
+                continue
+
+            if t.token_type is Generic.Newline:
+                # insert semicolon
+                if len(line) > 0 and line[-1] != ";":
+                    t.token_type = Operator.Semicolon
+                    t.value = ";"
+                    tokens_.append(t)
+                line = ""
+                continue
+
+            tokens_.append(t)
+            line += t.value
+
         return tokens_
 
 

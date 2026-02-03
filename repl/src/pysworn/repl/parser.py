@@ -13,6 +13,8 @@ from pygments.token import (
     String,
     Whitespace,
 )
+from rich import print
+
 from pysworn.repl.expr import (
     # Assign,
     # Binary,
@@ -26,7 +28,6 @@ from pysworn.repl.expr import (
     SequenceExpr,
 )
 from pysworn.repl.lexer import EndOfFile, Token
-from rich import print
 
 log = logging.getLogger(__name__)
 
@@ -213,40 +214,3 @@ class Parser:
             return SequenceExpr(self._previous())
 
         self._report_error(ParseError(self._peek(), "Expected expression."))
-
-
-# if __name__ == "__main__":
-#     from rich.logging import RichHandler
-
-#     FORMAT = "%(message)s"
-
-#     logging.basicConfig(
-#         level="DEBUG",
-#         format=FORMAT,
-#         datefmt="[%X]",
-#         handlers=[RichHandler(rich_tracebacks=True)],
-#     )
-
-#     logging.getLogger("markdown_it").setLevel(logging.WARNING)
-#     logging.basicConfig(level=logging.DEBUG)
-
-#     from pysworn.repl.lexer import lexer
-
-#     text = ""
-#     with open("example.sworn", "r") as f:
-#         text = f.read()
-#     lexer.tokenize(text)
-#     tokens = lexer.clean_tokens()
-
-#     # clean up before parsing
-
-#     # print("Cleaned tokens:")
-#     # for t in tokens:
-#     #     print(t)
-
-#     # convert to Token dataclass
-#     # tokens = [PyswornToken(token_type=t[0], lexeme=t[1]) for t in tokens]
-
-#     parser = Parser(tokens)
-#     ast = parser.parse()
-#     print(ast)
