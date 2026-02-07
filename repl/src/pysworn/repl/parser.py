@@ -1,47 +1,30 @@
 import logging
 from dataclasses import dataclass
-from tkinter import W
-from token import OP
+from re import L
 from typing import Any
 
+# token types
 from pygments.token import (
-    Comment,
     Keyword,
     Name,
     Number,
     Operator,
     String,
-    Whitespace,
+    _TokenType,  # pyright: ignore[reportPrivateUsage]
 )
-from rich import print
 
-from pysworn.repl.expr import (
-    # Assign,
-    # Binary,
+# grammar
+from pysworn.repl.grammar import (
+    DocString,
     Expr,
-    # Unary,
+    ExprStmt,
     KeywordStmt,
-    # Grouping,
     Literal,
-    MarkdownBlock,
-    Pragma,
-    SequenceExpr,
+    Stmt,
 )
 from pysworn.repl.lexer import EndOfFile, Token
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class ParseException(Exception):
-    """Exception raised for errors in the parsing process."""
-
-    message: str
-    line: int = -1
-    col: int = -1
-
-    def __str__(self) -> str:
-        return f"{self.message}"
 
 
 @dataclass
@@ -51,166 +34,131 @@ class ParseError(Exception):
 
 
 class Parser:
-    def __init__(self, tokens: list[Any]) -> None:
+    def __init__(self, tokens: list[Any], error_handler: Any = None) -> None:
         self.tokens: list[Any] = tokens
-        self._current = 0
+        self.error_handler = error_handler
+        self.current = 0
 
     def parse(self) -> list[Expr] | None:
-        """Parse the list of tokens and return the corresponding AST."""
-
         statements: list[Expr] = []
-        while not self._is_eof():
-            stmt = self._statement()
+        while not self.is_eof():
+            stmt = self.declaration()
             statements.append(stmt)
             log.info(stmt)
         return statements
 
-    def _is_eof(self) -> bool:
-        return self._peek().token_type is EndOfFile
+    # UTILITIES ----------------------------------------------------------------
 
-    def _advance(self) -> Token:
-        """Return the next token to be consumed by the parser & advance the pointer location."""
-        if not self._is_eof():
-            self._current += 1
-        return self._previous()
+    def is_eof(self) -> bool:
+        return self.peek().token_type is EndOfFile
 
-    def _match(self, *query_token_types: type) -> bool:
-        """Check if the current token matches any of the query token type(s)."""
+    def advance(self) -> Token:
+        if not self.is_eof():
+            self.current += 1
+        return self.previous()
 
-        log.debug(f"Matching {query_token_types} against {self._peek()}")
-
-        if any((self._check(query_token) for query_token in query_token_types)):
-            self._advance()
-            return True
+    def match(self, *token_types: _TokenType):
+        for token_type in token_types:
+            if self.check(token_type):
+                log.debug(f"match: {self.peek()}")
+                self.advance()
+                return True
 
         return False
 
-    def _check(self, query_token_type: type) -> bool:
-        """Check if the current token matches the query token type."""
-        if self._is_eof():
+    def check(self, token_type: _TokenType):
+        if self.is_eof():
             return False
-        # log.debug(f"Checking {self._peek().token_type} against {query_token_type}")
-        return self._peek().token_type is query_token_type
+        return self.peek().token_type in token_type
 
-    def _peek(self) -> Token:
-        """Return the current token we have yet to consume."""
-        return self.tokens[self._current]
+    def peek(self) -> Token:
+        # log.debug(f"Peeking: {self.tokens[self.current]}")
+        return self.tokens[self.current]
 
-    def _previous(self) -> Token:
-        """Return the most recently consumed token."""
-        return self.tokens[self._current - 1]
+    def previous(self) -> Token:
+        return self.tokens[self.current - 1]
 
-    def _consume(self, query_token_type, msg: str) -> Token:
-        """
-        Check if the current token matches the query token type.
+    def consume(self, token_type: _TokenType, msg: str):
+        if not self.check(token_type):
+            self.error(self.peek(), msg)
 
-        If the current token is a match, the token is consumed & retured. Otherwise, an error is
-        raised with the provided error message & a `ParseException` returned to assist with
-        synchronization.
-        """
-        if not self._check(query_token_type):
-            self._report_error(ParseError(self._peek(), msg))
+        return self.advance()
 
-        return self._advance()
+    def error(self, token: Token, msg: str):
+        self.error_handler.error(token, msg)
+        return ParseError
 
-    def _report_error(self, err: ParseError) -> ParseException:
-        """Report the provided error to the invoking interpreter & return an exception for sync."""
-        # self._interpreter.report_error(err)
+    def synchronize(self) -> None:
+        """Recover from error to continue parsing."""
+        self.advance()
 
-        msg = f"{err.token!r} {err.message}"
-        raise ParseException(msg)
-
-    def _synchronize(self) -> None:
-        self._advance()
-
-        while not self._is_eof():
-            if self._previous().token_type == Operator.Semicolon:
+        while not self.is_eof():
+            if self.previous().token_type == Operator.Semicolon:
                 return
 
-            match self._peek().token_type:
-                # case Whitespace:
-                #     self._advance()
-                # case Comment:
-                #     self._advance()
-                case _:
-                    return
+            if self.peek().token_type in (
+                Keyword,
+                Keyword.Reserved,
+                String.Symbol,
+                String.Doc,
+            ):
+                return
 
-            self._advance()
+            self.advance()
 
-    def _declaration(self) -> Any:
+    # DECLARATIONS ------------------------------------------------------------
+
+    def declaration(self) -> Any:
         try:
-            return self._statement()
-        except ParseException:
-            self._synchronize()
+            return self.statement()
+        except ParseError:
+            self.synchronize()
+            return None
 
-    def _statement(self):
-        if self._match(String.Doc):
-            log.debug("Found doc string, render as Markdown:")
-            md = self._previous().value[3:-3]  # strip markdown delimiters
-            self._consume(Operator.Semicolon, "Expected ';' after pragma.")
-            return MarkdownBlock(md)
+    # STATEMENTS ---------------------------------------------------------------
 
-        if self._match(Keyword.Reserved):
-            log.debug(f"Found Pragma: {self._previous().value}")
-            pragma = self._previous().value
+    def statement(self) -> Stmt:
+        if self.match(Keyword):
+            log.debug(f"Found Keyword: {self.previous().value}")
+            return self.keyword_statement()
 
-            if self._match(String.Symbol, Number):
-                log.debug(f"Found Value: {self._previous().value}")
-                value = self._previous().value
-            else:
-                value = None
-            self._consume(Operator.Semicolon, "Expected ';' after pragma.")
-            return Pragma(pragma, value)
+        if self.match(String.Doc):
+            return self.docstring()
 
-        if self._match(Keyword):
-            log.debug(f"Found Keyword: {self._previous().value}")
-            keyword = self._previous().value
+        return self.expression_statement()
 
-            if self._match(String.Symbol, Number):
-                log.debug(f"Found Value: {self._previous().value}")
-                value = self._previous().value
-            else:
-                raise ParseException("Expected value after keyword.")
-            self._consume(Operator.Semicolon, "Expected ';' after keyword.")
-            return KeywordStmt(keyword, value)
+    def keyword_statement(self) -> KeywordStmt:
+        token = self.previous()
+        expr = self.expression()
+        self.consume(Operator.Semicolon, "Expected ';' after keyword statement.")
+        return KeywordStmt(token, expr)
 
-        return self._expression_statement()
+    def docstring(self) -> DocString:
+        docs = DocString(self.previous(), self.previous().value[3:-3])
+        self.consume(Operator.Semicolon, "Expected ';' after docstring.")
+        return docs
 
-    def _expression_statement(self) -> Expr:
-        expr = self._expression()
+    def expression_statement(self) -> ExprStmt:
+        # log.debug("expression_statement")
+        token = self.peek()
+        expr = self.expression()
+        self.consume(Operator.Semicolon, "Expected ';' after expression.")
+        return ExprStmt(token, expr)
 
-        while self._match(Name):
-            values
-        self._consume(Operator.Semicolon, "Expected ';' after value.")
+    # EXPRESSIONS --------------------------------------------------------------
+
+    def expression(self) -> list[Any]:
+        # log.debug("expression")
+        expr: list[Any] = []
+        while self.check(String) or self.check(Number):
+            expr.append(self.primary())
+        log.debug(f"expr={expr}")
         return expr
 
-    def _expression(self) -> Expr:
-        return self._unary()
+    def primary(self) -> Expr | None:
+        log.debug(f"primary: '{self.peek().value}'")
 
-    def _unary(self) -> Expr:
-        if self._match(Operator.Minus, Operator.Plus):
-            operator = self._previous()
-            right = self._unary()
+        if self.match(String.Symbol, String, Number):
+            return Literal(self.previous(), self.previous().value)
 
-            return Unary(operator, right)
-
-        return self._primary()
-
-    def _primary(self) -> Expr:
-        if self._match(Number):
-            log.debug(f"Found Number: {self._previous().value}")
-            return Literal(self._previous().value)
-
-        if self._match(String):
-            log.debug(f"Found String: {self._previous().value}")
-            return Literal(self._previous().value)
-
-        # if self._match(Operator.LParen):
-        #     expr = self._expression()
-        #     self._consume(Operator.RParen, "Expected ')' after expression.")
-        #     return Grouping(expr)
-
-        if self._match(String.Symbol):
-            return SequenceExpr(self._previous())
-
-        self._report_error(ParseError(self._peek(), "Expected expression."))
+        self.error(self.peek(), "Expected literal.")

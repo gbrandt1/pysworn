@@ -1,9 +1,6 @@
 import logging
 import random
-import re
-from functools import reduce
 from pathlib import Path
-from pydoc import plain
 from string import Template
 from typing import Annotated, Any, Callable
 
@@ -14,9 +11,8 @@ from pysworn.renderables import RENDERABLE_TYPES, get_renderable
 from pysworn.repl.roller import get_roller
 from pysworn.repl.utils import (
     depth_first_merge,
-    depth_first_search,
     fuzzy_search,
-    get_id_dict,
+    get_id_tree,
 )
 from rich import print
 from rich.console import Console
@@ -380,7 +376,7 @@ def main(
     except KeyError as e:
         log.error(e)
         return
-    state["id_dict"] = get_id_dict(*maps)
+    # state["id_dict"] = get_id_dict(*maps)
     return
 
     def _expand(d: dict[str, Any]):

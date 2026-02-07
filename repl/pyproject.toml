@@ -12,6 +12,11 @@ dependencies = [
     "textual-autocomplete>=4.0.6",
 ]
 scripts = { sworn = "pysworn.repl.sworn:app" }
+
+[project.entry-points."pygments.styles"]
+pysworn = "pysworn.repl.style:PyswornStyle"
+
+
 [tool.uv.build-backend]
 module-name = "pysworn.repl"
 

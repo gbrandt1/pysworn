@@ -6,12 +6,16 @@ from typing import Annotated, Literal
 import typer
 from pysworn.repl.console import ConsoleWithInputBackspaceFixed as Console
 from pysworn.repl.interpreter import Interpreter
-from pysworn.repl.lexer import Lexer, print_untokenize
+from pysworn.repl.lexer import Lexer, Token, print_untokenize
 from pysworn.repl.parser import Parser
-from rich import print
+from pysworn.repl.theme import pysworn_theme
+
+# from rich import print
+from rich.columns import Columns
 from rich.logging import RichHandler
 
-console = Console()
+console = Console(theme=pysworn_theme)
+print = console.print
 
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
 log = logging.getLogger(__name__)
@@ -35,6 +39,8 @@ class Sworn:
         self.had_error = False
         self.had_runtime_error = False
 
+        self.interpreter = Interpreter()
+
     def run_file(self, path: Path) -> None:
         src = path.read_text()
         self.run(src)
@@ -47,9 +53,8 @@ class Sworn:
 
     def repl(self):
         while True:
-            line = console.input(">>> ")
-            if line:
-                self.run(line + "\n")
+            line = console.input("⬡⬡⬡ ")
+            self.run(line + "\n")
 
             # Reset these so we can stay in the REPL unhindered
             self.had_error = False
@@ -69,34 +74,28 @@ class Sworn:
             return
 
         if self.show_lexer:
-            print("\nCleaned Tokens:\n")
-            print(tokens)
-            return
+            for token in tokens:
+                print(f"{token} ", end="")
+                if token.value == ";":
+                    print()
 
-        parser = Parser(tokens)
+        parser = Parser(tokens, error_handler=self)
         stmts = parser.parse()
-
-        if not stmts:
-            log.error("No statements found.")
-            return
 
         if self.show_parser:
             print("Parser Output:")
             print(stmts)
-            return
 
         if not self.interpret:
             return
 
-        interpreter = Interpreter()
-        results = interpreter.interpret(stmts)
-
-        from rich.columns import Columns
+        results = self.interpreter.interpret(stmts)
 
         print(Columns(results))
 
-        # for result in results:
-        #     print(f"{type(result)}")
+    def error(self, token: Token, message: str):
+        self.had_error = True
+        log.error(f"[line {token.line}] {message} {token}")
 
 
 @app.command()

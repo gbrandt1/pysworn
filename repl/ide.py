@@ -1,4 +1,3 @@
-import fnmatch
 from string import Template
 
 from pysworn.common import datasworn_tree

@@ -1,0 +1,74 @@
+starforged
+-- sundered_isles
+
+-- """# Asset Tests"""
+-- engine upgrade -- asset
+-- engine upgrade 0 -- asset.ability
+-- windbinder 0 bind the winds -- asset.ability.move
+
+-- roll launching your campaign oracle collection
+
+-- asset.ability.move.condition
+-- asset.ability.move.outcome
+-- asset.ability.oracle_rollable
+-- asset.ability.oracle_rollable.row
+-- asset_collection
+
+"""# atlas_collection"""
+atlas collection
+"""atlas_entry"""
+veiled mountains
+
+-- delve_site
+-- delve_site.denizen
+-- delve_site_domain
+-- delve_site_domain.danger
+-- delve_site_domain.feature
+-- delve_site_theme
+-- delve_site_theme.danger
+-- delve_site_theme.feature
+
+
+"""# move"""
+face danger adventure move
+"""move.condition"""
+"""move.oracle_rollable"""
+roll pay the price fate move oracle
+roll confront chaos exploration move oracle
+"""move.oracle_rollable.row"""
+pay the price fate move oracle 82
+"""move outcome"""
+strong hit face danger adventure move
+"""move_category"""
+
+"""npc"""
+risen
+
+"""npc variant"""
+chimera
+
+"""npc collection"""
+sample npcs collection
+
+"""oracle_collection"""
+creature oracle collection
+
+"""Oracles"""
+backstory -- oracle_rollable
+backstory 33 -- oracle_rollable.row
+
+"""rarity"""
+chime 
+
+"""truth"""
+cataclysm truth
+
+"""truth option"""
+cataclysm
+
+"""truth.option.oracle_rollable"""
+sun plague
+
+"""truth.option.oracle_rollable.row"""
+sun plague 26
+

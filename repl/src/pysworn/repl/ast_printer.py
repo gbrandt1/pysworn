@@ -1,6 +1,6 @@
 from functools import singledispatchmethod
 
-from pysworn.repl.expr import Binary, Expr, Grouping, Literal, Unary
+from pysworn.repl.grammar import Binary, Expr, Grouping, Literal, Unary
 
 
 class AstPrinter:

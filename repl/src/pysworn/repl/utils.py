@@ -1,27 +1,33 @@
 import logging
-from collections import ChainMap
+import re
+from collections import ChainMap, UserDict
 from collections.abc import Mapping
+from functools import reduce
 from typing import Any
 
 from pysworn.common import datasworn_tree
 from rich import print
-from rich.text import Text
 
 log = logging.getLogger(__name__)
 index = datasworn_tree.index
 
 
-def get_nested_dict(index: list[str]) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for _id in index:
-        if ":" not in _id or "." in _id.split(":")[1]:
-            continue
-        *nodes, last = (_id.split(":")[1]).split("/")
-        d = result
-        for k in nodes:
-            d = d.setdefault(k, {})
-        d[last] = {}
-    return result
+class ReadOnlyChainmap(UserDict[str, Any]):
+    """Combine multiple mappings for sequential lookup.
+
+    Source: https://code.activestate.com/recipes/305268/
+    """
+
+    def __init__(self, *maps: Mapping[str, Any]) -> None:
+        self._maps: tuple[Mapping[str, Any], ...] = maps
+
+    def __getitem__(self, key: str):
+        for mapping in self._maps:
+            try:
+                return mapping[key]
+            except KeyError:
+                pass
+        raise KeyError(key)
 
 
 class DeepChainMap[K, V](ChainMap[K, V]):
@@ -61,37 +67,59 @@ def depth_first_merge(*chain: dict[str, Any]) -> dict[str, Any]:
     return DeepChainMap[str, Any](*chain).to_dict()
 
 
-def get_id_dict(include: str, exclude: str) -> dict[str, Any]:
-    nested_ids: dict[str, Any] = {}
-    for id_ in index:
-        if include not in id_:
+def get_nested_dict(index: list[str]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for _id in index:
+        if ":" not in _id or "." in _id.split(":")[1]:
             continue
-        if exclude in id_:
-            continue
-        if "/" not in id_:
-            log.warning(f"Skipping {id_}")
-            continue
-        tag, path = id_.split(":")
-        # if tag in ("oracle_rollable", "move", "asset", "npc", "truth", "atlas_entry"):
-        path_ = path.split("/")
-        path_.insert(1, tag)
-
-        d = nested_ids
-        for k in path_:
+        *nodes, last = (_id.split(":")[1]).split("/")
+        d = result
+        for k in nodes:
             d = d.setdefault(k, {})
+        d[last] = {}
+    return result
 
-    def _expand(d: dict[str, Any], path: list[str] = []):
-        for k, v in d.items():
-            p = path.copy()
-            p.append(k)
-            if v == {}:
-                id_ = f"{p[1]}:{p[0]}/{'/'.join(p[2:])}"
-                d[k] = id_  # f"<{type(index[id_]).__name__}>"
-            else:
-                _expand(v, p)
 
-    _expand(nested_ids)
-    return nested_ids
+def get_id_tree(
+    include: str | None = None, exclude: str | None = None
+) -> dict[str, Any]:
+    id_tree: dict[str, Any] = {}
+    for id_ in index:
+        if include and include not in id_:
+            continue
+        if exclude and exclude in id_:
+            continue
+        # if "/" not in id_:
+        #     log.warning(f"Skipping {id_}")
+        #     continue
+        tag, path = id_.split(":")
+
+        if tag.endswith(".row"):
+            continue
+
+        # tag = tag.split(".")[0]
+        # path_ = path.replace(".", "/").split("/")
+        path_ = re.split(r"[\./]", path)
+        path_.insert(1, tag)
+        # path_.append(id_)
+
+        # print(f"{path_}")
+        # print(nested_ids)
+        d = id_tree
+        for k in path_:
+            # if not isinstance(d, dict):
+            #     log.warning(f"Skipping {id_} for {d}")
+            #     break
+            d = d.setdefault(k, {})
+            # d = reduce(lambda d, k: d.setdefault(k, {}), path_[:-1], nested_ids)
+        # if isinstance(d, dict):
+        d["id"] = id_
+        # else:
+        #     log.warning(f"Skipping {id_} for {d}")
+
+    print(id_tree)
+
+    return id_tree
 
 
 def depth_first_search(
@@ -138,6 +166,14 @@ def get_flat_paths():
         paths[path] = k
 
     return paths
+
+
+def id_to_tokens(id_: str):
+    tag, path = id_.split(":")
+    path = path.split("/")
+    path = " ".join(reversed([path[0]] + [tag] + path[1:]))
+    path = path.replace("_", " ")
+    return path
 
 
 def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:

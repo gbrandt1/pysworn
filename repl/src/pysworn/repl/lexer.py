@@ -1,14 +1,13 @@
 """
-Lexer for Sworn script language.
+Regex-based lexer for Sworn script language.
 
-The lexer reuses Pygments tokens and state defintion
+The lexer reuses Pygments token types and state defintion
 for direct integration with Pygments.
 """
 
 import logging
 import re
 from dataclasses import dataclass
-from tkinter import W
 from typing import Any
 
 import rich.repr
@@ -17,14 +16,11 @@ from pygments.token import (
     Comment,
     Generic,
     Keyword,
-    Name,
     Number,
     Operator,
     String,
     Whitespace,
-)
-from pygments.token import (
-    Token as PygmentsToken,
+    _TokenType,  # pyright: ignore[reportPrivateUsage]
 )
 from rich import print
 from rich.syntax import Syntax
@@ -39,7 +35,7 @@ double_quoted_string = r'"(?:\\.|[^"\\n])*"'
 single_quoted_string = r"'([^'\\]*(?:\\.[^'\\]*)*)'"
 
 # TODO: use Pygments words()
-pragmas = ["match", "play", "seed"]
+# pragmas = ["match", "play", "seed"]
 keywords = [
     "print",
     "roll",
@@ -54,29 +50,29 @@ keywords = [
     "suffer",
     "from",
 ]
-pragmas_regex = r"\b(" + "|".join(pragmas) + r")\b"
+# pragmas_regex = r"\b(" + "|".join(pragmas) + r")\b"
 keywords_regex = r"\b(" + "|".join(keywords) + r")\b"
 
 state = [
-    (r"--.*", Comment),
+    (r"--.*$", Comment),
     (triple_quoted_string, String.Doc),
     (double_quoted_string, String.Double),
     (single_quoted_string, String.Single),
-    (pragmas_regex, Keyword.Reserved),
+    # (pragmas_regex, Keyword.Namespace),
     (keywords_regex, Keyword),
     (r"[a-zA-Z_]+([ ]+([a-zA-Z_])+)*", String.Symbol),
     # (r"[a-zA-Z_]\w*", Name),
     (r"\d+", Number),
-    (r"=", Operator.Assignment),
-    (r"\.", Operator.Dot),
+    # (r"=", Operator.Assignment),
+    # (r"\.", Operator.Dot),
     # (r"\+", Operator.Plus),
     # (r"-", Operator.Minus),
     # (r"\*", "MULTIPLY"),
     # (r"/", "DIVIDE"),
-    (r"\(", Operator.LParen),
-    (r"\)", Operator.RParen),
+    # (r"\(", Operator.LParen),
+    # (r"\)", Operator.RParen),
     # (r"=", Operator.Equal),
-    (r":", Operator.Colon),
+    # (r":", Operator.Colon),
     (r";", Operator.Semicolon),
     (r"\n", Generic.Newline),
     (r"^[ \t]+\b", Whitespace.Indent),  # Leading whitespace
@@ -87,26 +83,21 @@ state = [
 @dataclass
 @rich.repr.auto
 class Token:
-    token_type: tuple
+    token_type: _TokenType
     value: str
     pos: int
     line: int
     col: int
 
 
-# lineno: int = -1  # Zero-indexed
-# end_lineno: int = -1  # Zero-indexed
-# col_offset: int = -1  # Zero-indexed, relative to the starting line
-# end_col_offset: int = -1  # Zero indexed, relative to the ending line
-
-EndOfFile = PygmentsToken.EndOfFile
+EndOfFile = Generic.EndOfFile
 
 
 class PygmentsSwornLexer(RegexLexer):
     """Pygments Lexer for Sworn script language."""
 
     name = "Sworn"
-    url: str = "https://github.com/gbrandt1/pysworn"
+    url = "https://github.com/gbrandt1/pysworn"
     aliases = ["sworn"]
     filenames = ["*.sworn", "*.pysworn"]
     tokens = {"root": state}
@@ -132,8 +123,8 @@ class Lexer:
         self.tokens: list[Token] = []
 
     def tokenize(self, text: str) -> list[Token]:
-        """Tokenize a string into a list of (token_type, value, position) tuples."""
-        # TODO: Add line and column tracking, indentation stack
+        """Tokenize a string into a list Tokens."""
+        # TODO: indentation stack
         pos = 0
         line = 1
         col = 0
@@ -150,25 +141,35 @@ class Lexer:
 
             token_type = self.group_type[groupname]
             value = match.group(groupname)
-            if token_type == Whitespace.Newline:
+            if token_type == Generic.Newline:
                 line += 1
                 col = 0
-            if token_type == String.Markdown:
+            if token_type == String.Doc:
                 line += value.count("\n")
             col += len(value)
-            self.tokens.append(Token(token_type, value, pos, line, col))
+            self.tokens.append(
+                Token(
+                    token_type=token_type,
+                    value=value,
+                    pos=pos,
+                    line=line,
+                    col=col,
+                )
+            )
             pos = match.end()
-            log.debug(self.tokens[-1])
+            # log.debug(self.tokens[-1])
 
-        self.tokens.append(Token(EndOfFile, "", pos, line, 0))
+        self.tokens.append(Token(EndOfFile, "", pos + 1, line, col + 1))
         return self.tokens
 
     def clean_tokens(self) -> list[Token]:
-        # strip comments
-        # tokens = [t for t in self.tokens if t.token_type not in Comment]
-        # merges semicolons and newlines
+        """
+        - Remove comments.
+        - Insert semicolons.
+        - Merge semicolons and newlines.
+        """
         tokens_ = []
-        semicolon = False
+
         line = ""
         for t in self.tokens:
             if t.token_type is Comment:
@@ -196,20 +197,9 @@ def print_untokenize(tokens: list[Any]):
     untokenized = ""
     for token in tokens:
         untokenized += token.value
-    # print("Untokenized:")
-    # print(untokenize)
-
-    # print(STYLE_MAP.keys())
-    # print("Pygments Highlighted:")
-    # print(highlight(untokenize, SwornLexer(), TerminalFormatter(style="monokai")))
 
     syntax = Syntax(
-        untokenized,
-        PygmentsSwornLexer(),
-        # theme="gruvbox-dark",
-        # theme="fruity",
-        theme="native",
-        line_numbers=True,
+        untokenized, PygmentsSwornLexer(), theme="pysworn", line_numbers=True
     )
     print(syntax)
 
@@ -228,7 +218,33 @@ def try_lexer():
         col = lexer.tokens[-1].col - 1
         print(f"[red]{text.split('\n')[line]}\n{' ' * col}^")
         return
+
     print_untokenize(lexer.tokens)
+
+    clean_tokens = lexer.clean_tokens()
+    clean_untokenized = "  ".join([t.value for t in clean_tokens]).replace(";", "\n")
+    print(clean_untokenized)
+    return
+
+    # from rich import print
+    # from rich.table import Table
+
+    # clean_tokens = lexer.clean_tokens()
+    # t = Table(
+    #     padding=(0, 1),
+    #     highlight=True,
+    #     show_edge=False,
+    #     show_header=False,
+    # )
+    # for token in clean_tokens:
+    #     t.add_row(
+    #         repr(token)
+    #         # repr(token.token_type),
+    #         # token.value,
+    #         # str(token.line),
+    #         # str(token.col),
+    #     )
+    # print(t)
 
 
 if __name__ == "__main__":
@@ -240,7 +256,5 @@ if __name__ == "__main__":
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
-
-    # log.debug(lexer)
 
     try_lexer()

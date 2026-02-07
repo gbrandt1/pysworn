@@ -1,6 +1,8 @@
 seed 12345678;  -- generate same random numbers everytime
-play starsmith starforged;
-match fuzzy;
+starforged. -- load starforged
+starsmith. -- load starsmith
+
+
 """
 # Starforged + Starsmith Session
 
