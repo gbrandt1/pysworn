@@ -1,0 +1,105 @@
+
+starforged
+
+Cataclysm Truth 34
+
+Artificial intelligence Truth 1
+computer 55
+
+-- War Truth
+-- Religion Truth
+-- Precursors Truth
+-- Medicine Truth
+-- Magic Truth
+-- Lifeforms Truth
+-- Laws Truth
+-- Iron Truth
+-- Horrors Truth
+-- Exodus Truth
+-- Communities Truth
+-- Communication and data Truth
+
+
+naturalist; slayer;
+backstory 66
+
+"""Background Vow"""
+action core 69; theme core 62
+"""
+- you were denied a birthright which is and inheritance of an...
+"""
+descriptor core 3; roll focus core 88;
+"""
+- you vow to reposses what is rightly yours.
+"""
+
+"""Your Starship"""
+starship asset
+history 47
+quirks starship 19
+name starship 15
+-- roll module assets
+sensor array
+
+"""Stats"""
+-- Edge
+-- Heart
+-- Iron
+-- Shadow
+-- Wits
+"""Condition Meters"""
+-- Health
+-- Spirit
+-- Supply
+
+-- roll character oracles
+-- roll name character oracles
+"""Name: Derya *Spider* Sato. Flashy Hostile Researcher."""
+
+"""
+# Region: Terminus 
+
+
+## Deep Space Settlement **Sanctity Fortress**
+
+- 76: Significant structural damage       > First Look
+- 94: Destroyed                           > Initial Contact
+- 94: Oppressive                          > Authority
+- 21: Energy                              > Projects
+- 64: Preyed upon by raiders              > Trouble
+
+Star:
+"""
+stellar 33
+
+"""sector map"""
+"""passages"""
+
+"""STEP 9: CREATE A LOCAL CONNECTION"""
+
+strong hit make connection
+-- roll character oracles
+"""
+- 88: Weathered        > First Look
+- 73: Demanding        > Initial Disposition
+- 15: Criminal         > Role
+- 29: Escape a captor  > Goal
+- 56: Intolerant       > Revealed Aspect
+"""
+"""Home ?"""
+"""Raven *Wrongway* Gray"""
+"""Step 10: Introduce a Sector Trouble"""
+trouble starting sector 24
+"""Step 11: Finalize the Starting Sector"""
+"""Sector **Scarred Oasis**"""
+"""Iciting Incident"""
+inciting 21
+begin a session session move
+begin a session session move oracle 73
+-- roll starship oracles
+"""
+Sanctity Fortress is under attack by a fleet of ships
+under the flagship of the Mutara, a pirate cutlass.
+"""
+cutlass
+enter the fray combat move

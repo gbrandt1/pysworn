@@ -1,5 +1,5 @@
 -- Sworn Script Example for an Ironsworn classic session
-classic. delve. lodestar.
+classic; delve; lodestar;
 
 roll religion truth
 roll old world truth
@@ -13,3 +13,7 @@ roll defense truth
 roll communities truth
 roll beasts truth
 
+-- roll ironland atlas coll
+havens
+
+masked; alchemist path asset;

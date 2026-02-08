@@ -179,11 +179,7 @@ class RollType(Enum):
     special_track = ...
 
 
-class EmbeddedMove(BaseModel):
-    model_config = ...
-    roll_type: RollType
-
-
+EmbeddedMove = Annotated["EmbeddedActionRollMove | EmbeddedNoRollMove | EmbeddedProgressRollMove | EmbeddedSpecialTrackMove", Discriminator('roll_type')]
 EmbeddedMoveIdWildcard = Annotated[str, Field(description='A wildcarded AssetAbilityMoveId that can be used to match multiple AssetAbilityMove objects.', pattern='^asset\\.ability\\.move:((?:[a-z][a-z0-9_]*|\\*)(?:\\/(?:[a-z][a-z0-9_]*|\\*|\\*\\*)){2,5})\\.(\\d+|\\*)\\.([a-z][a-z0-9_]*|\\*)$', title='EmbeddedMoveIdWildcard'),]
 class RecommendedRolls(BaseModel):
     min: int
@@ -200,11 +196,7 @@ class OracleType(Enum):
     column_text3 = ...
 
 
-class EmbeddedOracleRollable(BaseModel):
-    model_config = ...
-    oracle_type: OracleType
-
-
+EmbeddedOracleRollable = Annotated["EmbeddedOracleColumnText | EmbeddedOracleColumnText2 | EmbeddedOracleColumnText3 | EmbeddedOracleTableText | EmbeddedOracleTableText2 | EmbeddedOracleTableText3", Discriminator('oracle_type'),]
 class EmbedOnlyType(Enum):
     ability = ...
     condition = ...

@@ -62,7 +62,14 @@ class Sworn:
 
     def run(self, src: str):
         lexer = Lexer()
-        lexer.tokenize(src)
+        try:
+            lexer.tokenize(src)
+        except ValueError as e:
+            print(f"\n{e}")
+            line = lexer.tokens[-1].line - 1
+            col = lexer.tokens[-1].col
+            print(f"[red]{src.split('\n')[line]}\n{' ' * col}^")
+            return
 
         if self.highlight:
             print_untokenize(lexer.tokens)

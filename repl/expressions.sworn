@@ -1,4 +1,6 @@
-starforged
+classic
+
+-- starforged
 -- sundered_isles
 
 -- """# Asset Tests"""
@@ -14,10 +16,10 @@ starforged
 -- asset.ability.oracle_rollable.row
 -- asset_collection
 
-"""# atlas_collection"""
-atlas collection
-"""atlas_entry"""
-veiled mountains
+-- """# atlas_collection"""
+-- atlas collection
+-- """atlas_entry"""
+-- veiled mountains
 
 -- delve_site
 -- delve_site.denizen
@@ -29,46 +31,46 @@ veiled mountains
 -- delve_site_theme.feature
 
 
-"""# move"""
-face danger adventure move
-"""move.condition"""
-"""move.oracle_rollable"""
-roll pay the price fate move oracle
-roll confront chaos exploration move oracle
-"""move.oracle_rollable.row"""
-pay the price fate move oracle 82
-"""move outcome"""
-strong hit face danger adventure move
-"""move_category"""
+-- """# move"""
+-- face danger adventure move
+-- """move.condition"""
+-- """move.oracle_rollable"""
+-- roll pay the price fate move oracle
+-- roll confront chaos exploration move oracle
+-- """move.oracle_rollable.row"""
+-- pay the price fate move oracle 82
+-- """move outcome"""
+-- strong hit face danger adventure move
+-- """move_category"""
+-- 
+-- """npc"""
+-- risen
 
-"""npc"""
-risen
-
-"""npc variant"""
-chimera
-
-"""npc collection"""
-sample npcs collection
-
-"""oracle_collection"""
-creature oracle collection
-
-"""Oracles"""
-backstory -- oracle_rollable
-backstory 33 -- oracle_rollable.row
-
-"""rarity"""
-chime 
-
-"""truth"""
-cataclysm truth
-
-"""truth option"""
-cataclysm
-
-"""truth.option.oracle_rollable"""
-sun plague
-
-"""truth.option.oracle_rollable.row"""
-sun plague 26
+-- """npc variant"""
+-- chimera
+-- 
+-- """npc collection"""
+-- sample npcs collection
+-- 
+-- """oracle_collection"""
+-- creature oracle collection
+-- 
+-- """Oracles"""
+-- backstory -- oracle_rollable
+-- backstory 33 -- oracle_rollable.row
+-- 
+-- """rarity"""
+-- chime 
+-- 
+-- """truth"""
+-- cataclysm truth
+-- 
+-- """truth option"""
+-- cataclysm
+-- 
+-- """truth.option.oracle_rollable"""
+-- sun plague
+-- 
+-- """truth.option.oracle_rollable.row"""
+-- sun plague 26
 

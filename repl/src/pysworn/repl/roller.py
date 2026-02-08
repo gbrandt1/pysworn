@@ -13,12 +13,14 @@ from typing import (
 )
 
 from datasworn.core.models import (
+    Asset,
     AssetCollection,
     AtlasCollection,
     BaseModel,
     EmbeddedOracleColumnText,
     EmbeddedOracleRollable,
     EmbeddedOracleTableText,
+    MoveActionRoll,
     NpcCollection,
     OracleColumnText,
     OracleColumnText2,
@@ -76,39 +78,21 @@ class RollResult:
         yield t
 
 
-# @group()
-def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType:
+def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType | None:
     rollable_type = Roller.Registry.get(type(v))
-    log.debug(f"Roller for type: {type(v)} -> {rollable_type}")
 
     if not rollable_type:
-        return f"Can't roll on {type(v)}"
-
-    results: list[RollResult] = []
+        return
 
     rollable = rollable_type(v, *args, **kwargs)
     return rollable
 
-    # def _flatten(r, level: int = 0):
-    #     # log.debug(f"{r}")
-    #     for r_ in r:
-    #         if isinstance(r_, RollResult):
-    #             # console.print(Padding(r_, pad=(0, 0, 0, level * 4)))
-    #             # console.print(r_)
-    #             results.append(r_)
-    #         elif isinstance(r_, Roller):
-    #             _flatten(r_, level + 1)
-    #         else:
-    #             log.error(f"Unknown rollable result: {r_}")
 
-    # _flatten(rollable)
-    # return Group(*results)
-
-
-class Roller(Generator):
+class Roller:
     """Base class for all Rollers.
 
-    A Roller is a generator that yields RollResults.
+    Rollers can select from a choice of contained objects.
+
 
     This class should be subclassed for each rollable type.
     It automatically registers subclasses based on the type annotations
@@ -141,14 +125,14 @@ class Roller(Generator):
                 Roller.Registry[v] = cls
                 log.debug(f"{v}: {cls}")
 
-    def __init__(self, obj: BaseModel, *args: Any, **kwargs: Any):
-        self.obj = obj
+    # def __init__(self, obj: BaseModel, *args: Any, **kwargs: Any):
+    #     self.obj = obj
 
-    def send(self, *args: Any, **kwargs: Any) -> Any:
-        raise StopIteration
+    # def send(self, *args: Any, **kwargs: Any) -> Any:
+    #     raise StopIteration
 
-    def throw(self, type_=None, value=None, traceback=None) -> Any:
-        super().throw(type_, value, traceback)
+    # def throw(self, type_=None, value=None, traceback=None) -> Any:
+    #     super().throw(type_, value, traceback)
 
 
 class OracleCollectionRoller(Roller):
@@ -245,12 +229,10 @@ class TruthRoller(Roller):
     def __init__(
         self,
         truth: Truth,
-        *args: Any,
         roll: int | None = None,
         **kwargs: Any,
     ):
         self.truth = truth
-        self.args = args
         self.kwargs = kwargs
         self.number_of_rolls, self.dice = self.truth.dice.split("d")
 
@@ -263,52 +245,86 @@ class TruthRoller(Roller):
             self.roll = random.randint(1, int(self.dice))
 
     def __rich_console__(
-        self,
-        console: Console,
-        options: ConsoleOptions,
+        self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
         for option in self.truth.options:
             if option.roll and option.roll.min <= self.roll <= option.roll.max:
-                # yield TruthOptionRenderable(option, **self.kwargs)
                 yield get_renderable(option, **self.kwargs)
 
 
-# class OracleRollable
+class AssetRoller(Roller):
+    def __init__(
+        self,
+        asset: Asset,
+        roll: int | None = None,
+        **kwargs: Any,
+    ):
+        self.asset = asset
+        self.kwargs = kwargs
+
+        na = len(self.asset.abilities)
+        if roll is not None:
+            if roll < 0 or roll > na:
+                msg = f"Invalid roll: {roll} (Range {na})"
+                raise ValueError(msg)
+            self.roll = roll
+        else:
+            self.roll = random.randint(0, na)
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        ability = self.asset.abilities[self.roll]
+        yield get_renderable(ability, **self.kwargs)
+
+
+class MoveActionRollRoller(Roller):
+    def __init__(
+        self,
+        move: MoveActionRoll,
+        # roll: int | None = None,
+        **kwargs: Any,
+    ):
+        self.move = move
+        self.kwargs = kwargs
+
+        # na = len(self.move.outcomes)
+        # if roll is not None:
+        #     if roll < 0 or roll > na:
+        #         msg = f"Invalid roll: {roll} (Range {na})"
+        #         raise ValueError(msg)
+        #     self.roll = roll
+        # else:
+        self.roll = random.choice(["strong_hit", "weak_hit", "miss"])
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        outcome = getattr(self.move.outcomes, self.roll)
+        yield get_renderable(outcome, **self.kwargs)
+
+
 if __name__ == "__main__":
     from pysworn.common import datasworn_tree
+    from rich import print
     from rich.console import Console
     from rich.logging import RichHandler
-    from rich.padding import Padding
 
     logging.basicConfig(
-        level="INFO",
+        level="DEBUG",
         format="%(message)s",
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
+    logging.getLogger("markdown_it").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
     console = Console()
     console.print(Roller.Registry)
 
-    # for k in datasworn_tree:
-    #     datasworn_tree[k]
     datasworn_tree["starforged"]
 
     for k, v in datasworn_tree.index.items():
-        if not k.startswith("oracle_collection:"):
-            continue
         if rollable := get_roller(v, plain=False):
-            log.debug(f"'{k}'")
-            # roll, r = rollable()
-
-            def _flatten(r, level: int = 0):
-                log.debug(f"{r}")
-                for r_ in r:
-                    if isinstance(r_, RollResult):
-                        console.print(Padding(r_, pad=(0, 0, 0, level * 4)))
-                    elif isinstance(r_, Roller):
-                        _flatten(r_, level + 1)
-                    else:
-                        log.error(f"Unknown rollable result: {r_}")
-
-            _flatten(rollable)
+            log.debug(f"'{k}': <{type(v).__name__}> -> <{type(rollable).__name__}>")
+            # print(rollable)

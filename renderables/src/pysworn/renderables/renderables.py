@@ -2,6 +2,7 @@ import logging
 import re
 from inspect import getfullargspec
 from itertools import cycle
+from operator import ge
 from typing import Any, ClassVar, TypeAliasType, Union, get_args, get_origin
 
 from datasworn.core.models import (
@@ -106,19 +107,16 @@ def name_or_id(id_: str | None) -> str:
         if name := getattr(obj, "name", None):
             name.replace("Cursed", "🕱 Cursed")
             return name
-    return f"*{id_.split('/')[-1].title().replace('_', ' ')}*"
+    last = id_.split("/")[-1].replace(".", " ")
+    return f"{last.title().replace('_', ' ')}"
 
 
 def breadcrumbs(id_: str):
     if ":" not in id_:
         return index[id_].name
-    titles = id_.split(":")[1].title().replace("_", " ")
-    # *path, last = titles.split("/")
-    if id_.count("/") > 1:
-        yield titles.split("/")[-2].upper().replace("_", " ")
-        # Markdown(" -> ".join([p for p in path])),  # + [f"**{last}**\n\n"])),
-        # Rule(style="dim white"),
-    yield Text.from_markup(f"[b]{name_or_id(id_).upper()}[/]")
+    yield Text.from_markup(f"[b]{name_or_id(id_).upper()}[/] ").append(
+        id_, style="log.path"
+    )
     yield ""
 
 
@@ -126,19 +124,29 @@ def get_renderable(obj: BaseModel, *args: Any, **kwargs: Any) -> RenderableType 
     r_type = type(obj)
     renderable = RENDERABLE_TYPES.get(r_type, None)
     if renderable:
-        # return Panel(renderable(obj, *args, **kwargs))
+        border_title: str = renderable.BORDER_TITLE.upper()
+        if category := getattr(obj, "category", None):
+            border_title = f"{category.upper()}"  # {border_title}"
+        # border_title = f"{border_title} {name_or_id(obj.id)}"
+
+        subtitle = ""
         if source := getattr(obj, "source", None):
-            return Panel(
-                renderable(obj, *args, **kwargs),
-                title=renderable.BORDER_TITLE.upper(),
-                title_align="left",
-                subtitle=f"[{source.title}, {source.page}]",
-                subtitle_align="right",
-                border_style="dim",
-                width=renderable.MAX_WIDTH,
-            )
-        else:
-            return renderable(obj, *args, **kwargs)
+            subtitle = f"[{source.title}, {source.page}]"
+
+        border_style = "scope.border"
+        if hasattr(obj, "color") and obj.color:
+            border_style = obj.color
+
+        return Panel(
+            renderable(obj, *args, **kwargs),
+            title=border_title,
+            title_align="left",
+            subtitle=subtitle or "",
+            subtitle_align="right",
+            border_style=border_style,
+            width=renderable.MAX_WIDTH,
+        )
+
     return f"No renderable found for {type(obj)} ({getattr(obj, 'id', None)})"
 
 
@@ -172,6 +180,7 @@ def render_text_with_embeds(
 class PyswornRenderable(ConsoleRenderable):
     BORDER_TITLE: ClassVar[str | None] = None
     MAX_WIDTH: ClassVar[int | None] = None
+    """Default max. width to provide line-wrapping similar to books."""
 
     def __init_subclass__(cls, **kwargs: Any):
         super().__init_subclass__(**kwargs)
@@ -182,7 +191,9 @@ class PyswornRenderable(ConsoleRenderable):
             cls._resolve_type(v)
 
         if not cls.BORDER_TITLE:
-            cls.BORDER_TITLE = cls.__name__.replace("Renderable", "")
+            cls.BORDER_TITLE = re.sub(
+                r"([a-z\d])([A-Z])", r"\1 \2", cls.__name__.replace("Renderable", "")
+            )
 
     @classmethod
     def _resolve_type(cls, arg: type | TypeAliasType):
@@ -213,22 +224,36 @@ class RuleSetRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        msg = f"# {self.ruleset.title}\n\n"
-        msg += "by "
+        yield Markdown(f"# {self.ruleset.title}")
+        yield Markdown(f"[{self.ruleset.url}]({self.ruleset.url})")
+        msg = "by "
         for author in self.ruleset.authors:
-            msg += f"{author.name} "
+            msg += f"{author.name}"
             if author.email:
-                msg += f"{author.email} "
+                msg += f" ({author.email})"
             if author.url:
-                msg += f"{author.url} "
-        msg += "\n\n"
-        msg += f"[{self.ruleset.url}]({self.ruleset.url}) - "
-        msg += f"Licensed for our use under {self.ruleset.license}\n\n"
+                msg += f" {author.url}"
         yield Markdown(msg)
+        yield Markdown(f"Licensed for our use under {self.ruleset.license}")
+        yield ""
+
+        collections: list[tuple[str, int]] = []
+        for k in self.ruleset.model_fields_set:
+            d = getattr(self.ruleset, k)
+            if isinstance(d, dict) and d:
+                collections.append((k, len(d)))
+
+        # ids = [i for i in datasworn_tree.index if self.ruleset.id in i]
+
+        yield Markdown(
+            "Contains "
+            + ", ".join(f"{n} {k.title()}" for k, n in collections)
+            + " collections."
+        )
 
 
 class CategoryRenderable(PyswornRenderable):
-    def __init__(self, category: dict, *args, **kwargs):
+    def __init__(self, category: dict[str, Any], *ar, **kwargs):
         self.category = category
 
     def __rich_console__(
@@ -254,7 +279,7 @@ class CollectionRenderable:
             yield ""
 
         if contents := getattr(self.collection, "contents", None):
-            yield "[cyan]" + " ".join(contents) + "[/]"
+            yield ", ".join(c.title().replace("_", " ") for c in contents)
 
         if collections := getattr(self.collection, "collections", None):
             for collection in self.collection.collections.values():
@@ -322,6 +347,10 @@ class AssetRenderable(PyswornRenderable):
     ) -> RenderResult:
         yield from breadcrumbs(self.asset.id)
 
+        if requirement := getattr(self.asset, "requirement", None):
+            yield Markdown(f"**{requirement}**")
+            yield ""
+
         for option in self.asset.options.values():
             l = option.label.title()
             yield f"{l}{'_' * (self.MAX_WIDTH - len(l) - 4)}"
@@ -348,6 +377,9 @@ class AssetRenderable(PyswornRenderable):
                 case _:
                     yield Pretty(control)
 
+        if replaces := getattr(self.asset, "replaces", None):
+            yield Markdown(f"**Replaces: {', '.join(replaces)}*")
+
 
 class AssetCollectionRenderable(PyswornRenderable):
     BORDER_TITLE = "Asset Type"
@@ -367,7 +399,8 @@ class AssetCollectionRenderable(PyswornRenderable):
         assets = []
         if contents := getattr(self.collection, "contents", None):
             for asset in self.collection.contents.values():
-                assets.append(get_renderable(asset))
+                # assets.append(get_renderable(asset))
+                assets.append(asset.name)
             yield Columns(assets)
 
         # if collections := getattr(self.collection, "collections", None):
@@ -496,6 +529,7 @@ class MoveConditionRenderable(PyswornRenderable):
         | TriggerProgressRollCondition
         | TriggerActionRollCondition,
         *args,
+        breadcrumbs: bool = True,
         **kwargs,
     ):
         self.condition = condition
@@ -503,21 +537,60 @@ class MoveConditionRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        if not self.condition.text:
-            yield "(no condition)"
-            return
+        yield from breadcrumbs(self.condition.id)
 
-        if isinstance(self.condition, TriggerSpecialTrackCondition):
-            yield Markdown(self.condition.text)
+        msg = []
+        if text := getattr(self.condition, "text", None):
+            msg.append(text)
+        # yield Markdown(msg)
 
-        if isinstance(self.condition, TriggerProgressRollCondition):
-            yield Markdown(self.condition.text)
+        match self.condition:
+            case TriggerSpecialTrackCondition():
+                for roll_option in self.condition.roll_options:
+                    msg.append(roll_option.using)
 
-        if isinstance(self.condition, TriggerActionRollCondition):
-            text = self.condition.text
-            for roll_option in self.condition.roll_options:
-                if roll_option.model_extra:
-                    yield Markdown(text + f" +{roll_option.model_extra.keys()}")
+            case TriggerProgressRollCondition():
+                for roll_option in self.condition.roll_options:
+                    msg.append(roll_option.using)
+
+            case TriggerActionRollCondition():
+                for roll_option in self.condition.roll_options:
+                    using = roll_option.using.value
+                    # msg.append(using)
+
+                    if not roll_option.__pydantic_extra__:
+                        msg.append(Pretty(roll_option))
+                        continue
+                    if using in (
+                        "stat",
+                        "condition_meter",
+                    ):
+                        msg.append(f" +{roll_option.__pydantic_extra__[using]}")
+                        continue
+                    if using in (
+                        "asset_control",
+                        # "asset_option",
+                        "attached_asset_control",
+                        # "attached_asset_option",
+                    ):
+                        msg.append(f" +{roll_option.__pydantic_extra__['control']}")
+                        continue
+                    if using == "custom":
+                        msg.append(f" +{roll_option.__pydantic_extra__['label']}")
+                        continue
+                    msg.append(Pretty(roll_option))
+
+                # asset_option = 'asset_option'
+                # attached_asset_option = 'attached_asset_option'
+
+            case _:
+                yield Pretty(self.condition)
+                # raise NotImplementedError
+
+        if method := getattr(self.condition, "method", None):
+            msg.append(f"({method.value.replace('_', ' ')})")
+
+        yield Markdown(" ".join(msg))
 
 
 class MoveOutcomeRenderable(PyswornRenderable):
@@ -525,6 +598,7 @@ class MoveOutcomeRenderable(PyswornRenderable):
         self,
         outcome: MoveOutcome,
         *args,
+        breadcrumbs: bool = True,
         **kwargs,
     ):
         self.outcome = outcome
@@ -532,6 +606,7 @@ class MoveOutcomeRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
+        yield from breadcrumbs(self.outcome.id)
         yield Markdown(self.outcome.text)
 
 
@@ -548,7 +623,6 @@ class MoveRenderable(PyswornRenderable):
         | EmbeddedActionRollMove
         | EmbeddedSpecialTrackMove,
         *args,
-        outcome: str | None = None,
         **kwargs,
     ):
         self.move = move
@@ -558,16 +632,12 @@ class MoveRenderable(PyswornRenderable):
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
         yield from breadcrumbs(self.move.id)
-        if isinstance(self.move, MoveProgressRoll) or isinstance(
-            self.move, MoveSpecialTrack
+        if isinstance(
+            self.move, MoveProgressRoll | MoveSpecialTrack | EmbeddedSpecialTrackMove
         ):
             yield "[b i]Progress Move[/]\n"
 
         yield from render_text_with_embeds(self.move.text, self.move.id)
-
-        # if self.outcome:
-        # yield Markdown(getattr(self.move.outcomes, self.outcome).text)
-        # yield
 
 
 class MoveCategoryRenderable(CollectionRenderable, PyswornRenderable):
@@ -636,15 +706,25 @@ class NpcVariantRenderable(PyswornRenderable):
 class NpcRenderable(PyswornRenderable):
     MAX_WIDTH = 88
 
-    def __init__(self, npc: Npc, *args, **kwargs):
+    def __init__(
+        self,
+        npc: Npc,
+        *args,
+        variants: bool = True,
+        **kwargs,
+    ):
         self.npc = npc
+        self.variants = variants
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
         yield NpcVariantRenderable(self.npc)
+        if not self.variants:
+            return
         for variant in self.npc.variants.values():
-            yield Panel(NpcVariantRenderable(variant))
+            yield (Rule(style="dim white"))
+            yield get_renderable(variant)
 
 
 class NpcCollectionRenderable(CollectionRenderable, PyswornRenderable):
@@ -673,12 +753,10 @@ class OracleTablesCollectionRenderable(PyswornRenderable):
             yield Markdown(summary)
 
         if contents := getattr(self.collection, "contents", None):
-            yield ""
-            yield "[cyan]" + ", ".join(contents) + "[/]"
+            yield "Oracles: " + ", ".join(c.title() for c in contents)
 
         if collections := getattr(self.collection, "collections", None):
-            yield ""
-            yield "[cyan]" + ", ".join(collections) + "[/]"
+            yield "Collections: " + ", ".join(c.title() for c in collections)
 
 
 class OracleTableSharedRenderable(PyswornRenderable):
@@ -888,8 +966,15 @@ class RarityRenderable(PyswornRenderable):
 
 
 class TruthOptionRenderable(PyswornRenderable):
-    def __init__(self, truth: TruthOption, *args, **kwargs):
+    def __init__(
+        self,
+        truth: TruthOption,
+        *args,
+        show_quest_starter: bool = False,
+        **kwargs,
+    ):
         self.truth = truth
+        self.show_quest_starter = show_quest_starter
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
@@ -915,7 +1000,10 @@ class TruthOptionRenderable(PyswornRenderable):
         # oracles = []
         # for oracle in self.truth.oracles.values():
         #     oracles.append(OracleRollableRenderable(oracle))
-        if quest_starter := getattr(self.truth, "quest_starter", None):
+
+        if self.show_quest_starter and (
+            quest_starter := getattr(self.truth, "quest_starter", None)
+        ):
             rcol.append(Markdown(f"> *Quest Starter: {quest_starter}*"))
 
         table.add_row(f"[b]{roll.min}-{roll.max}[/]", Group(*rcol))

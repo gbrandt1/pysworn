@@ -30,6 +30,7 @@ ClassVars:
 
 ## Renderables
 
+- [ ] correct rendering of column-wise tables
 - [ ] allow options
 
 - [ ] control panel

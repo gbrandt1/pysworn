@@ -1,8 +1,10 @@
 import logging
+from encodings.punycode import T
 from typing import Annotated, TypeAliasType, Union, get_args, get_origin
 
 import typer
 from pysworn.common import datasworn_tree
+from pysworn.renderables.renderables import RENDERABLE_TYPES, get_renderable
 from rich.columns import Columns
 from rich.console import Console, RenderableType
 from rich.markdown import Markdown
@@ -12,8 +14,6 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.theme import Theme
 from rich.tree import Tree
-
-from pysworn.renderables.renderables import RENDERABLE_TYPES, get_renderable
 
 from . import RenderableKeyEnum, RuleSetRenderable
 
@@ -47,8 +47,12 @@ index = datasworn_tree.index
 
 
 @app.command()
-def types():
-    from inspect import getfullargspec
+def types(
+    keys_: Annotated[bool, typer.Option("--keys", "-k")] = False,
+    enum_: Annotated[bool, typer.Option("--enum", "-e")] = False,
+    renderables_: Annotated[bool, typer.Option("--renderables", "-r")] = False,
+):
+    # from inspect import getfullargspec
 
     from rich.table import Table
 
@@ -88,17 +92,32 @@ def types():
             keys.setdefault(key, set())
             keys[key].add(type(v))
 
-        t = Table("key", "type", "renderable", highlight=True)
+        t = Table(
+            "key",
+            "type",
+            "renderable",
+            highlight=True,
+            show_lines=False,
+            show_edge=False,
+        )
         for k, v in keys.items():
             for vv in v:
                 renderable = RENDERABLE_TYPES.get(vv, None)
                 renderable = f"<{renderable.__name__}>" if renderable else f"[red]None"
                 t.add_row(f"'{k}'", f"<{vv.__name__}>", f"{renderable}")
-            t.add_section()
+            # t.add_section()
         return t
 
-    # print(gather_keys())
-    print(get_renderable_table())
+    keys = gather_keys()
+    if keys_:
+        for k in keys:
+            print(k)
+    if enum_:
+        for k in keys:
+            print(f'{k.upper().replace(".", "_")} = "{k}"')
+
+    if renderables_:
+        print(get_renderable_table())
 
 
 @app.command()
@@ -156,6 +175,7 @@ def print_(
     panel: Annotated[bool, typer.Option("--panel", "-p")] = False,
     no_rows: Annotated[bool, typer.Option("--no-rows", "-r")] = False,
     columns: Annotated[bool, typer.Option("--columns", "-c")] = False,
+    # id_: Annotated[str, typer.Option("--id", "-i")] = None,
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -196,7 +216,7 @@ def print_(
             )
         console.print(renderable)
         if debug:
-            console.print(Pretty(obj, max_string=40))
+            console.print(Pretty(obj, max_string=80))
 
     if columns:
         console.print(Columns(renderables))

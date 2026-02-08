@@ -2,11 +2,15 @@ import logging
 import re
 from collections import ChainMap, UserDict
 from collections.abc import Mapping
-from functools import reduce
 from typing import Any
 
 from pysworn.common import datasworn_tree
-from rich import print
+from pysworn.repl.theme import pysworn_theme
+from rich.console import Console
+from rich.text import Text
+
+console = Console(theme=pysworn_theme)
+print = console.print
 
 log = logging.getLogger(__name__)
 index = datasworn_tree.index
@@ -89,35 +93,20 @@ def get_id_tree(
             continue
         if exclude and exclude in id_:
             continue
-        # if "/" not in id_:
-        #     log.warning(f"Skipping {id_}")
-        #     continue
         tag, path = id_.split(":")
 
         if tag.endswith(".row"):
             continue
 
-        # tag = tag.split(".")[0]
-        # path_ = path.replace(".", "/").split("/")
         path_ = re.split(r"[\./]", path)
         path_.insert(1, tag)
-        # path_.append(id_)
 
-        # print(f"{path_}")
-        # print(nested_ids)
         d = id_tree
         for k in path_:
-            # if not isinstance(d, dict):
-            #     log.warning(f"Skipping {id_} for {d}")
-            #     break
             d = d.setdefault(k, {})
-            # d = reduce(lambda d, k: d.setdefault(k, {}), path_[:-1], nested_ids)
-        # if isinstance(d, dict):
         d["id"] = id_
-        # else:
-        #     log.warning(f"Skipping {id_} for {d}")
 
-    print(id_tree)
+    log.debug(id_tree)
 
     return id_tree
 
@@ -184,7 +173,11 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
 
     log.debug(f"looking for '{keys}' in {len(paths)} paths")
 
-    matcher = Matcher(keys, match_style=Style(bold=True), case_sensitive=False)
+    matcher = Matcher(
+        keys,
+        match_style=Style.parse("u bold bright_cyan"),
+        case_sensitive=False,
+    )
     matches: list[Any] = []
     for p in paths.keys():
         score = matcher.match(p)
@@ -197,6 +190,9 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
 
     matches.sort(reverse=True)
     matches = [m for m in matches if m[0] > 10.0]
+    if len(matches) == 0:
+        msg = "No fuzzy matches found."
+        raise ValueError(msg)
     log.debug(matches)
 
     if len(matches) == 1 or matches[0][0] > matches[1][0]:
@@ -206,7 +202,8 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
 
     from rich.table import Table
 
-    print("\nDid you mean:\n")
+    print()
+    print("Did you mean:\n")
     t = Table.grid(padding=(0, 1), expand=True)
     t.add_column(justify="left", overflow="fold")
     t.add_column(justify="right", style="log.path")
@@ -215,6 +212,7 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
         path[-1] = path[-1].replace(".", ", ")
         path_ = " > ".join(path[1:]) + f" ({path[0]})"
 
-        t.add_row(matcher.highlight(m[1]), path_)
+        t.add_row(matcher.highlight(m[1]), Text(path_, style="log.path"))
     print(t)
+    print()
     return None
