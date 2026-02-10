@@ -15,7 +15,7 @@ from rich.table import Table
 from rich.theme import Theme
 from rich.tree import Tree
 
-from . import RenderableKeyEnum, RuleSetRenderable
+from . import RenderableKeyEnum, RuleSetRenderable, RulesRenderable
 
 console = Console(force_terminal=True)
 console.push_theme(
@@ -188,6 +188,20 @@ def print_(
             print(
                 Panel(
                     renderable(datasworn_tree[ruleset]),
+                    title=f"[dim]{ruleset} {prefix.value.upper()}",
+                    title_align="left",
+                    border_style="dim",
+                    # width=80,
+                )
+            )
+        return
+
+    if prefix.value == "rules":
+        renderable = RulesRenderable
+        for ruleset in datasworn_tree:
+            print(
+                Panel(
+                    renderable(datasworn_tree[ruleset].rules),
                     title=f"[dim]{ruleset} {prefix.value.upper()}",
                     title_align="left",
                     border_style="dim",

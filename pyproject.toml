@@ -12,7 +12,9 @@ dependencies = [
     "pysworn-reference",
     "pysworn-renderables",
     "rapidfuzz>=3.14.3",
+    "repl",
 ]
+scripts = { sworn = "pysworn.repl.sworn:run" }
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]
@@ -27,6 +29,7 @@ pysworn-reference = { workspace = true }
 pysworn-renderables = { workspace = true }
 pysworn-datasworn = { workspace = true }
 pysworn-common = { workspace = true }
+repl = { workspace = true }
 # datasworn = { path = "../datasworn/pkg/python/datasworn" }
 
 [tool.uv.workspace]

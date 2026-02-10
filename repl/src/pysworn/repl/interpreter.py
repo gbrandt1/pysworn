@@ -7,6 +7,11 @@ from typing import Any, Callable
 
 from pysworn.common import datasworn_tree
 from pysworn.renderables import get_renderable
+
+# from rich import print
+from rich.console import Console
+from rich.pretty import Pretty
+
 from pysworn.repl.grammar import (
     DocString,
     Expr,
@@ -24,10 +29,6 @@ from pysworn.repl.utils import (
     get_id_tree,
     id_to_tokens,
 )
-
-# from rich import print
-from rich.console import Console
-from rich.pretty import Pretty
 
 
 @dataclass
@@ -154,7 +155,7 @@ class Interpreter:
                 if result:
                     results.append(result)
         except Exception as e:
-            log.exception(e)
+            log.error(e)
         return results
 
     def get_datasworn_object(self, name: str) -> Any | None:

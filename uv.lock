@@ -175,58 +175,55 @@ wheels = [
 [[package]]
 name = "datasworn-classic"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/classic" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fclassic#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-community-content-ancient-wonders"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/ancient-wonders" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fancient-wonders#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-community-content-fe-runners"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/fe-runners" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Ffe-runners#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-community-content-ironsmith"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/ironsmith" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fironsmith#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-community-content-starsmith"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/starsmith" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fstarsmith#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-core"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/core" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fcore#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 dependencies = [
     { name = "pydantic", extra = ["email"] },
 ]
 
-[package.metadata]
-requires-dist = [{ name = "pydantic", extras = ["email"], specifier = ">=2.12.5" }]
-
 [[package]]
 name = "datasworn-delve"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/delve" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fdelve#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-lodestar"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/lodestar" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Flodestar#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-starforged"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/starforged" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fstarforged#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "datasworn-sundered-isles"
 version = "0.1.0"
-source = { editable = "../datasworn/pkg/python/datasworn/src/datasworn/sundered_isles" }
+source = { git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fsundered_isles#d9741c51f95636a83367d0a3d1ef9522ace80ac9" }
 
 [[package]]
 name = "dnspython"
@@ -693,6 +690,7 @@ dependencies = [
     { name = "pysworn-reference" },
     { name = "pysworn-renderables" },
     { name = "rapidfuzz" },
+    { name = "repl" },
 ]
 
 [package.dev-dependencies]
@@ -715,6 +713,7 @@ requires-dist = [
     { name = "pysworn-reference", editable = "reference" },
     { name = "pysworn-renderables", editable = "renderables" },
     { name = "rapidfuzz", specifier = ">=3.14.3" },
+    { name = "repl", editable = "repl" },
 ]
 
 [package.metadata.requires-dev]
@@ -751,16 +750,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "datasworn-classic", editable = "../datasworn/pkg/python/datasworn/src/datasworn/classic" },
-    { name = "datasworn-community-content-ancient-wonders", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/ancient-wonders" },
-    { name = "datasworn-community-content-fe-runners", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/fe-runners" },
-    { name = "datasworn-community-content-ironsmith", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/ironsmith" },
-    { name = "datasworn-community-content-starsmith", editable = "../datasworn/pkg/python/datasworn-community-content/src/datasworn_community_content/starsmith" },
-    { name = "datasworn-core", editable = "../datasworn/pkg/python/datasworn/src/datasworn/core" },
-    { name = "datasworn-delve", editable = "../datasworn/pkg/python/datasworn/src/datasworn/delve" },
-    { name = "datasworn-lodestar", editable = "../datasworn/pkg/python/datasworn/src/datasworn/lodestar" },
-    { name = "datasworn-starforged", editable = "../datasworn/pkg/python/datasworn/src/datasworn/starforged" },
-    { name = "datasworn-sundered-isles", editable = "../datasworn/pkg/python/datasworn/src/datasworn/sundered_isles" },
+    { name = "datasworn-classic", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fclassic" },
+    { name = "datasworn-community-content-ancient-wonders", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fancient-wonders" },
+    { name = "datasworn-community-content-fe-runners", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Ffe-runners" },
+    { name = "datasworn-community-content-ironsmith", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fironsmith" },
+    { name = "datasworn-community-content-starsmith", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn-community-content%2Fsrc%2Fdatasworn_community_content%2Fstarsmith" },
+    { name = "datasworn-core", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fcore" },
+    { name = "datasworn-delve", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fdelve" },
+    { name = "datasworn-lodestar", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Flodestar" },
+    { name = "datasworn-starforged", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fstarforged" },
+    { name = "datasworn-sundered-isles", git = "https://github.com/gbrandt1/datasworn.git/?subdirectory=pkg%2Fpython%2Fdatasworn%2Fsrc%2Fdatasworn%2Fsundered_isles" },
     { name = "rich", specifier = ">=14.2.0" },
 ]
 

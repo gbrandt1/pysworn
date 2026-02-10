@@ -1,18 +1,20 @@
 import logging
 import sys
+from math import e
 from pathlib import Path
 from typing import Annotated, Literal
 
 import typer
+
+# from rich import print
+from rich.columns import Columns
+from rich.logging import RichHandler
+
 from pysworn.repl.console import ConsoleWithInputBackspaceFixed as Console
 from pysworn.repl.interpreter import Interpreter
 from pysworn.repl.lexer import Lexer, Token, print_untokenize
 from pysworn.repl.parser import Parser
 from pysworn.repl.theme import pysworn_theme
-
-# from rich import print
-from rich.columns import Columns
-from rich.logging import RichHandler
 
 console = Console(theme=pysworn_theme)
 print = console.print
@@ -54,7 +56,10 @@ class Sworn:
     def repl(self):
         while True:
             line = console.input("⬡⬡⬡ ")
-            self.run(line + "\n")
+            try:
+                self.run(line + "\n")
+            except Exception as e:
+                log.error(e)
 
             # Reset these so we can stay in the REPL unhindered
             self.had_error = False

@@ -63,7 +63,7 @@ state = [
     (r"[a-zA-Z_]+([ ]+([a-zA-Z_])+)*", String.Symbol),
     # (r"[a-zA-Z_]\w*", Name),
     (r"\d+", Number),
-    # (r"=", Operator.Assignment),
+    (r"=", Operator.Assignment),
     # (r"\.", Operator.Dot),
     # (r"\+", Operator.Plus),
     # (r"-", Operator.Minus),

@@ -2,7 +2,6 @@ import logging
 import re
 from inspect import getfullargspec
 from itertools import cycle
-from operator import ge
 from typing import Any, ClassVar, TypeAliasType, Union, get_args, get_origin
 
 from datasworn.core.models import (
@@ -401,7 +400,7 @@ class AssetCollectionRenderable(PyswornRenderable):
             for asset in self.collection.contents.values():
                 # assets.append(get_renderable(asset))
                 assets.append(asset.name)
-            yield Columns(assets)
+            yield Columns(assets, padding=(0, 2))
 
         # if collections := getattr(self.collection, "collections", None):
         #     for collection in self.collection.collections.values():
@@ -753,10 +752,12 @@ class OracleTablesCollectionRenderable(PyswornRenderable):
             yield Markdown(summary)
 
         if contents := getattr(self.collection, "contents", None):
-            yield "Oracles: " + ", ".join(c.title() for c in contents)
+            yield "Oracles: " + ", ".join(c.title().replace("_", " ") for c in contents)
 
         if collections := getattr(self.collection, "collections", None):
-            yield "Collections: " + ", ".join(c.title() for c in collections)
+            yield "Collections: " + ", ".join(
+                c.title().replace("_", " ") for c in collections
+            )
 
 
 class OracleTableSharedRenderable(PyswornRenderable):
@@ -1044,22 +1045,63 @@ class RulesRenderable(PyswornRenderable):
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
-        attrs = (
-            "condition_meters",
-            "impacts",
-            "special_tracks",
-            "stats",
-            "tags",
-        )
-        rules = []
-        for attr in attrs:
-            if hasattr(self.rules, attr) and (obj := getattr(self.rules, attr)):
-                rules.append(Markdown(f"## {attr}"))
-                for k, v in obj.items():
-                    if attr == "tags":
-                        rules.append(Markdown(f"### {k}"))
-                    else:
-                        rules.append(Markdown(f"### {v.label}"))
-                    rules.append(Markdown(v.description))
-                    # rules.append(Pretty(v))
-        yield Group(*rules)
+        def _table(*args, **kwargs):
+            return Table(
+                *args,
+                padding=(0, 1),
+                # show_edge=False,
+                show_header=False,
+                border_style="scope.border",
+                # row_styles=["on black", "on gray19"],
+                **kwargs,
+            )
+
+        if stats := getattr(self.rules, "stats", None):
+            # yield Pretty(stats)
+            t = _table(title="STATS")
+            for stat in stats.values():
+                t.add_row(f"{stat.label.upper()}", f"{stat.description}")
+            yield Panel(t, border_style="scope.border")
+
+        if cms := getattr(self.rules, "condition_meters", None):
+            # yield Pretty(cms)
+            t = _table(title="CONDITION METERS")
+            for cm in cms.values():
+                t.add_row(f"{cm.label.upper()}", f"{'⬢' * cm.max}", f"{cm.description}")
+                # ⬡
+            yield Panel(t, border_style="scope.border")
+
+        if impacts := getattr(self.rules, "impacts", None):
+            # yield Pretty(impacts)
+            t = _table(title="IMPACTS")
+            for impact_category in impacts.values():
+                tt = _table(
+                    "",
+                    "",
+                    "Prevents Recovery",
+                    "Permanent",
+                    title=impact_category.label.upper(),
+                    caption=Markdown(impact_category.description),
+                )
+                # if impact_category.contents:
+                for impact in impact_category.contents.values():
+                    tt.add_row(
+                        impact.label.upper(),
+                        Markdown(impact.description),
+                        ", ".join(impact.prevents_recovery),
+                        str(impact.permanent),
+                    )
+                t.add_row(tt)
+            yield Panel(t, border_style="scope.border")
+
+        if sts := getattr(self.rules, "special_tracks", None):
+            # yield Pretty(sts)
+            t = _table(title="SPECIAL TRACKS")
+            for st in sts.values():
+                t.add_row(f"{st.label.upper()}", f"{st.description}")
+            yield Panel(t, border_style="scope.border")
+
+        # if tags := getattr(self.rules, "tags", None):
+        #     for k, v in tags.items():
+        #         yield k
+        #         yield Pretty(v)

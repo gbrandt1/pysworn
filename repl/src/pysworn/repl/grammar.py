@@ -46,3 +46,8 @@ class ExprStmt(Stmt):
 @dataclass
 class KeywordStmt(Stmt):
     expr: list[Literal]
+
+
+class AssignmentStmt(Stmt):
+    token: Token
+    expr: list[Literal]
