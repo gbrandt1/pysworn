@@ -8,21 +8,16 @@ from datasworn.core.models import Expansion, Ruleset
 
 log = ...
 DATASWORN_JSON_SOURCES: dict[str, tuple[str, type[Expansion] | type[Ruleset]]] = ...
+
 class DataswornTree(Mapping[str, Any]):
     """Lazy loading and self-indexing Datasworn ruleset and expansion tree."""
-    def __init__(self) -> None:
+    def __init__(self) -> None: ...
+    def __getitem__(self, name: str):  # -> Any:
         ...
-    
-    def __getitem__(self, name: str): # -> Any:
+    def __iter__(self):  # -> Iterator[str]:
         ...
-    
-    def __iter__(self): # -> Iterator[str]:
+    def __len__(self):  # -> int:
         ...
-    
-    def __len__(self): # -> int:
-        ...
-    
-
 
 datasworn_tree = ...
 if __name__ == "__main__":

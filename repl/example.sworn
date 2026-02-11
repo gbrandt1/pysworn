@@ -1,38 +1,39 @@
-seed 12345678;  -- generate same random numbers everytime
-starforged. -- load starforged
-starsmith. -- load starsmith
+-- seed 12345678;  -- generate same random numbers everytime
+starforged -- load starforged
+-- starsmith. -- load starsmith
+action core
+roll action core
+quirks starship
+-- """
+-- # Starforged + Starsmith Session
+-- 
+-- Sworn DSL Example
+-- """
+-- roll begin session
 
-
-"""
-# Starforged + Starsmith Session
-
-Sworn DSL Example
-"""
-roll begin session
-
-"""## Your Character"""
+-- """## Your Character"""
 -- player from player
 --     name = roll family.name
 -- given name;
-roll given name; roll callsign; roll family name
+-- roll given name; roll callsign; roll family name
 
-roll backstory launch;
+-- roll backstory launch;
 
 -- Assets
-cosmic; well connected
+-- cosmic; well connected
 
 
-"""Action + Theme and Descriptor + Focus"""
-roll action core; roll theme core; roll descriptor core; roll focus core;
-
-"""## Your Starship"""
-roll history starship; roll name starship; roll quirks starship
-
-"""## So it begins ..."""
-roll inciting incident launch
-
-gather information;
-undertake expedition;
+-- """Action + Theme and Descriptor + Focus"""
+-- roll action core; roll theme core; roll descriptor core; roll focus core;
+-- 
+-- """## Your Starship"""
+-- roll history starship; roll name starship; roll quirks starship
+-- 
+-- """## So it begins ..."""
+-- roll inciting incident launch
+-- 
+-- gather information;
+-- undertake expedition;
 -- face danger adv;
 -- roll +2
 --

@@ -48,7 +48,9 @@ keywords = [
     "in bad spot",
     "reset",
     # "suffer",
-    "from",
+    "tree",
+    "truths",
+    # "from",
 ]
 # pragmas_regex = r"\b(" + "|".join(pragmas) + r")\b"
 keywords_regex = r"\b(" + "|".join(keywords) + r")\b"

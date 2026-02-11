@@ -1,9 +1,6 @@
 from rich.console import (
     Console,
     ConsoleOptions,
-    ConsoleRenderable,
-    Group,
-    RenderableType,
     RenderResult,
 )
 

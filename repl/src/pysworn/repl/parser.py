@@ -1,12 +1,10 @@
 import logging
 from dataclasses import dataclass
-from re import L
 from typing import Any
 
 # token types
 from pygments.token import (
     Keyword,
-    Name,
     Number,
     Operator,
     String,

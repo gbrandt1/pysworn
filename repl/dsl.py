@@ -12,7 +12,6 @@ from pysworn.repl.roller import get_roller
 from pysworn.repl.utils import (
     depth_first_merge,
     fuzzy_search,
-    get_id_tree,
 )
 from rich import print
 from rich.console import Console

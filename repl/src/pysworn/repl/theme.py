@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Any
 
-from rich.default_styles import DEFAULT_STYLES
 from rich.theme import Theme
 
 pysworn_theme_dict: dict[str, Any] = {}

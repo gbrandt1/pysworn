@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from pysworn.common import datasworn_tree
+from pysworn.repl.state import state
 from pysworn.repl.theme import pysworn_theme
 from rich.console import Console
 from rich.text import Text
@@ -54,8 +55,9 @@ class DeepChainMap[K, V](ChainMap[K, V]):
                 if not isinstance(v, Mapping):
                     target[k] = v
                     continue
-
-                _depth_first_update(target.setdefault(k, {}), v)
+                if k not in target:
+                    target[k] = {}
+                _depth_first_update(target[k], v)
 
         d: dict[K, V] = {}
         for m in reversed(self.maps):
@@ -106,7 +108,7 @@ def get_id_tree(
             d = d.setdefault(k, {})
         d["id"] = id_
 
-    log.debug(id_tree)
+    # log.debug(id_tree)
 
     return id_tree
 
@@ -165,6 +167,99 @@ def id_to_tokens(id_: str):
     return path
 
 
+def build_human_path(path: list[str]) -> str | None:
+    """Transform id path to human typeable path"""
+
+    path_dd: dict[str, Callable[[list[str]], Any]] = {
+        # ASSETS
+        "asset": lambda p: p,
+        "asset.ability": lambda p: None,  # rollable
+        "asset.ability.move": lambda p: ["move"] + p[1:-2] + p[-1:],
+        "asset.ability.move.condition": lambda p: (
+            None
+        ),  # TODO: extract options from move
+        "asset.ability.move.outcome": lambda p: ["move"] + p[1:-3] + p[-2:],
+        "asset.ability.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
+        "asset.ability.oracle_rollable.row": lambda p: None,  # rollable
+        "asset_collection": lambda p: ["assets"] + p[1:],
+        # ATLAS
+        "atlas_collection": lambda p: p,
+        "atlas_entry": lambda p: p,
+        # DELVE
+        "delve_site": lambda p: p,
+        "delve_site.denizen": lambda p: None,  # rollable (TODO)
+        "delve_site_domain": lambda p: ["domain"] + p[1:],
+        "delve_site_domain.danger": lambda p: None,  # rollable (TODO)
+        "delve_site_domain.feature": lambda p: None,  # rollable (TODO)
+        "delve_site_theme": lambda p: ["theme"] + p[1:],
+        "delve_site_theme.danger": lambda p: None,  # rollable (TODO)
+        "delve_site_theme.feature": lambda p: None,  # rollable (TODO)
+        # MOVES
+        "move": lambda p: p,
+        "move.condition": lambda p: None,  # TODO: extract options from move
+        "move.oracle_rollable": lambda p: ["oracle", "move"] + p[1:],
+        "move.oracle_rollable.row": lambda p: None,  # rollable
+        "move.outcome": lambda p: ["move"] + p[1:],
+        "move_category": lambda p: ["moves"] + p[1:],
+        "npc": lambda p: p,
+        "npc.variant": lambda p: ["npc"] + p[1:-2] + p[-1:],
+        "npc_collection": lambda p: ["npcs"] + p[1:],
+        "oracle_collection": lambda p: ["oracles"] + p[1:],
+        "oracle_rollable": lambda p: ["oracle"] + p[1:],
+        "oracle_rollable.row": lambda p: None,  # rollable
+        "rarity": lambda p: p,
+        "truth": lambda p: p,
+        "truth.option": lambda p: None,  # rollable
+        "truth.option.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
+        "truth.option.oracle_rollable.row": lambda p: None,  # rollable
+    }
+    try:
+        path_ = path_dd[path[1]](path[1:])
+    except KeyError:
+        msg = f"Unknown type: {path[1]}"
+        raise ValueError(msg)
+    if not path_:
+        return None
+    p = [p.capitalize() for p in path_]
+    p = " ".join(reversed(p)) + f" {path[0]}"
+    p = p.replace("_", " ").replace(".", " ")
+    log.debug(f"{path} --> {p}")
+    return p
+
+
+def add_ruleset(ruleset: str):
+    if ruleset in state["rulesets"]:
+        log.warning("Already playing: %s", ", ".join(state["rulesets"]))
+        return
+
+    state["rulesets"] = [ruleset] + state["rulesets"]
+
+    # idd = {p: get_id_tree(p)[p] for p in state["rulesets"]}
+    # merged = depth_first_merge(*idd.values())
+    # state["tree"] = merged
+
+    id_tree = get_id_tree(ruleset)
+    # print(id_tree)
+    state["tree"] |= id_tree
+
+    merged = state["tree"]  # depth_first_merge(*state["tree"].values())
+    paths = {}
+
+    def _flatten_id_tree(tree: dict[str, Any], path: list[str] = []):
+        for k, v in tree.items():
+            if isinstance(v, dict):
+                _flatten_id_tree(v, path + [k])
+            else:
+                if p := build_human_path(path):
+                    if p in paths:
+                        msg = f"Duplicate path: {p} --> {paths[p]} and {v}"
+                        raise ValueError(msg)
+                    paths[p] = v
+
+    _flatten_id_tree(merged)
+    state["paths"] |= paths
+
+
 def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
     from pysworn.repl.fuzzy import Matcher
     from rich.style import Style
@@ -182,7 +277,24 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
     for p in paths.keys():
         score = matcher.match(p)
         if score > 0.0:
-            matches.append((matcher.match(p), p, paths[p]))
+            ruleset = p.split()[-1]
+
+            # lower weight for earlier loaded rulesets
+            factor = 1.0 + state["rulesets"].index(ruleset)
+            score /= factor
+
+            # lower weight for sub-objects
+            id_ = paths[p]
+            factor = 1.0 + id_.count(".")
+            score /= factor
+
+            # lower weight for higher page numbers
+            obj = index[id_]
+            if source := getattr(obj, "source", None):
+                factor = 1.0 + (source.page or 0.0) * 0.01
+                score /= factor
+
+            matches.append((score, p, id_))
 
     if len(matches) == 0:
         log.error("No fuzzy matches found.")

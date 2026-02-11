@@ -1,40 +1,36 @@
 import logging
-from ast import Call
 from dataclasses import dataclass
 from functools import singledispatchmethod
-from re import M
-from typing import Any, Callable
+from typing import Any
 
 from pysworn.common import datasworn_tree
 from pysworn.renderables import get_renderable
-
-# from rich import print
-from rich.console import Console
-from rich.pretty import Pretty
-
 from pysworn.repl.grammar import (
     DocString,
     Expr,
-    # Pragma,
     ExprStmt,
     KeywordStmt,
     Literal,
 )
-from pysworn.repl.lexer import EndOfFile, Token
-from pysworn.repl.roller import get_roller
+from pysworn.repl.lexer import Token
+from pysworn.repl.roller import TruthsRoller, get_roller
+from pysworn.repl.state import state
 from pysworn.repl.theme import pysworn_theme
 from pysworn.repl.utils import (
-    depth_first_merge,
+    add_ruleset,
     fuzzy_search,
-    get_id_tree,
-    id_to_tokens,
 )
+from rich.console import Console
+from rich.pretty import Pretty
 
 
 @dataclass
 class InterpreterError(Exception):
     token: Token
     message: str
+
+    def __str__(self):
+        return f"{self.token!r} {self.message}"
 
 
 log = logging.getLogger(__name__)
@@ -43,98 +39,6 @@ log = logging.getLogger(__name__)
 console = Console(theme=pysworn_theme)
 
 print = console.print
-
-# global interpreter state
-state: dict[str, Any] = {
-    "rulesets": set(),  # TODO: needs to be list to keep preference order
-    "paths": {},
-}
-
-
-def build_human_path(path: list[str]) -> str | None:
-    """Transform id path to human typeable path"""
-
-    path_dd: dict[str, Callable[[list[str]], Any]] = {
-        # ASSETS
-        "asset": lambda p: p,
-        "asset.ability": lambda p: None,  # rollable
-        "asset.ability.move": lambda p: ["move"] + p[1:-2] + p[-1:],
-        "asset.ability.move.condition": lambda p: None,  # TODO: extract options from move
-        "asset.ability.move.outcome": lambda p: ["move"] + p[1:-3] + p[-2:],
-        "asset.ability.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
-        "asset.ability.oracle_rollable.row": lambda p: None,  # rollable
-        "asset_collection": lambda p: ["assets"] + p[1:],
-        # ATLAS
-        "atlas_collection": lambda p: p,
-        "atlas_entry": lambda p: p,
-        # DELVE
-        "delve_site": lambda p: p,
-        "delve_site.denizen": lambda p: p,
-        "delve_site_domain": lambda p: p,
-        "delve_site_domain.danger": lambda p: p,
-        "delve_site_domain.feature": lambda p: p,
-        "delve_site_theme": lambda p: p,
-        "delve_site_theme.danger": lambda p: p,
-        "delve_site_theme.feature": lambda p: p,
-        # MOVES
-        "move": lambda p: p,
-        "move.condition": lambda p: None,  # TODO: extract options from move
-        "move.oracle_rollable": lambda p: ["oracle", "move"] + p[1:],
-        "move.oracle_rollable.row": lambda p: None,  # rollable
-        "move.outcome": lambda p: ["move"] + p[1:],
-        "move_category": lambda p: ["moves"] + p[1:],
-        "npc": lambda p: p,
-        "npc.variant": lambda p: ["npc"] + p[1:-2] + p[-1:],
-        "npc_collection": lambda p: ["npcs"] + p[1:],
-        "oracle_collection": lambda p: ["oracles"] + p[1:],
-        "oracle_rollable": lambda p: ["oracle"] + p[1:],
-        "oracle_rollable.row": lambda p: None,  # rollable
-        "rarity": lambda p: p,
-        "truth": lambda p: p,
-        "truth.option": lambda p: None,  # rollable
-        "truth.option.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
-        "truth.option.oracle_rollable.row": lambda p: None,  # rollable
-    }
-    try:
-        path_ = path_dd[path[0]](path)
-    except KeyError:
-        msg = f"Unknown type: {path[0]}"
-        raise ValueError(msg)
-    if not path_:
-        return None
-    p = [p.capitalize() for p in path_]
-    p = " ".join(reversed(p))
-    p = p.replace("_", " ").replace(".", " ")
-    log.debug(f"{path} --> {p}")
-    return p
-
-
-def add_ruleset(rulesets: set[str]):
-    play = rulesets - state["rulesets"]
-    if not play:
-        log.warning("Already playing: %s", ", ".join(state["rulesets"]))
-        return
-    state["rulesets"].update(play)
-    idd = [get_id_tree(p)[p] for p in play]
-    merged = depth_first_merge(*idd)
-    paths = {}
-
-    def _flatten_id_tree(tree: dict[str, Any], path: list[str] = []):
-        for k, v in tree.items():
-            if isinstance(v, dict):
-                _flatten_id_tree(v, path + [k])
-            else:
-                if p := build_human_path(path):
-                    if v in paths:
-                        msg = f"Duplicate path: {v}"
-                        raise ValueError(msg)
-                    paths[p] = v
-
-    _flatten_id_tree(merged)
-    state["paths"] |= paths
-
-    # from rich.columns import Columns
-    # print(Columns(sorted(paths)))
 
 
 class Interpreter:
@@ -148,19 +52,25 @@ class Interpreter:
                 return [f"Try one of these: {' '.join(list(datasworn_tree))}"]
 
             return [f"Playing: {' '.join(list(state['rulesets']))}"]
+
         results: list[Any] = []
         try:
             for stmt in stmts:
                 result = self.visit(stmt)
                 if result:
                     results.append(result)
-        except Exception as e:
+        except InterpreterError as e:
             log.error(e)
+        except ValueError as e:
+            log.error(e)
+        except Exception as e:
+            log.exception(e)
+
         return results
 
     def get_datasworn_object(self, name: str) -> Any | None:
         if name in datasworn_tree.keys():
-            add_ruleset(set([name]))
+            add_ruleset(name)
             return datasworn_tree[name]
 
         paths = state.get("paths", None)
@@ -206,9 +116,9 @@ class Interpreter:
 
     @visit.register
     def _(self, stmt: KeywordStmt) -> Any:
-        obj = self.get_obj_from_expr(stmt.expr)
         match stmt.token.value:
             case "print":
+                obj = self.get_obj_from_expr(stmt.expr)
                 return Pretty(
                     self.get_obj_from_expr(stmt.expr),
                     overflow="fold",
@@ -216,10 +126,47 @@ class Interpreter:
                 )
 
             case "roll":
+                obj = self.get_obj_from_expr(stmt.expr)
                 roller = get_roller(obj)
                 return roller
 
-            # case "suffer":
+            case "tree":
+                from rich.tree import Tree
+
+                try:
+                    tree = state["tree"]
+                    if stmt.expr:
+                        for v in stmt.expr[0].value.split():
+                            tree = tree[v]
+                except KeyError:
+                    msg = f"Error in tree statement. {stmt.expr}"
+                    raise InterpreterError(stmt.token, msg)
+
+                # print(tree)
+                rtree = Tree(
+                    " ".join(e.value for e in stmt.expr),
+                    guide_style="scope.border",
+                )
+
+                def _recurse_tree(node: Tree, tree: dict[str, Any]):
+                    for k, v in tree.items():
+                        if isinstance(v, dict):
+                            if len(v) > 1:
+                                subnode = node.add(f"{k}")
+                                _recurse_tree(subnode, v)
+                            if "id" in v and len(v) == 1:
+                                node.add(f"{k} [blue]{v['id']}[/]")
+
+                _recurse_tree(rtree, tree)
+                return rtree
+
+            case "truths":
+                truths = []
+                for k, v in datasworn_tree.index.items():
+                    if k.startswith("truth:"):
+                        truths.append(v)
+                # log.debug(f"truths: {truths}")
+                return TruthsRoller(truths)
 
             case _:
                 raise InterpreterError(

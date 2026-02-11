@@ -1,22 +1,20 @@
 import logging
 import sys
-from math import e
 from pathlib import Path
 from typing import Annotated, Literal
 
 import typer
-
-# from rich import print
-from rich.columns import Columns
-from rich.logging import RichHandler
-
 from pysworn.repl.console import ConsoleWithInputBackspaceFixed as Console
 from pysworn.repl.interpreter import Interpreter
 from pysworn.repl.lexer import Lexer, Token, print_untokenize
 from pysworn.repl.parser import Parser
 from pysworn.repl.theme import pysworn_theme
 
-console = Console(theme=pysworn_theme)
+# from rich import print
+from rich.columns import Columns
+from rich.logging import RichHandler
+
+console = Console(theme=pysworn_theme, force_terminal=True)
 print = console.print
 
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
@@ -55,6 +53,7 @@ class Sworn:
 
     def repl(self):
         while True:
+            # console.print()
             line = console.input("⬡⬡⬡ ")
             try:
                 self.run(line + "\n")

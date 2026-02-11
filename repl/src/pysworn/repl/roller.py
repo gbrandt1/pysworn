@@ -1,6 +1,5 @@
 import logging
 import random
-from collections.abc import Generator
 from dataclasses import dataclass
 from inspect import getfullargspec
 from typing import (
@@ -11,12 +10,15 @@ from typing import (
     get_args,
     get_origin,
 )
+from unittest import result
+from webbrowser import get
 
 from datasworn.core.models import (
     Asset,
     AssetCollection,
     AtlasCollection,
     BaseModel,
+    DelveSite,
     EmbeddedOracleColumnText,
     EmbeddedOracleRollable,
     EmbeddedOracleTableText,
@@ -60,7 +62,7 @@ class RollResult:
         self,
         console: "Console",
         options: "ConsoleOptions",
-    ):
+    ) -> RenderResult:
         if self.plain:
             yield get_renderable(self.obj)
             return
@@ -82,7 +84,7 @@ def get_roller(v: BaseModel, *args: Any, **kwargs: Any) -> RenderableType | None
     rollable_type = Roller.Registry.get(type(v))
 
     if not rollable_type:
-        return
+        return None
 
     rollable = rollable_type(v, *args, **kwargs)
     return rollable
@@ -124,15 +126,6 @@ class Roller:
             if v.__module__ == "datasworn.core.models":
                 Roller.Registry[v] = cls
                 log.debug(f"{v}: {cls}")
-
-    # def __init__(self, obj: BaseModel, *args: Any, **kwargs: Any):
-    #     self.obj = obj
-
-    # def send(self, *args: Any, **kwargs: Any) -> Any:
-    #     raise StopIteration
-
-    # def throw(self, type_=None, value=None, traceback=None) -> Any:
-    #     super().throw(type_, value, traceback)
 
 
 class OracleCollectionRoller(Roller):
@@ -186,14 +179,14 @@ class OracleRoller(Roller):
         | OracleColumnText
         | OracleColumnText2
         | OracleColumnText3,
-        *args: Any,
+        *_: Any,
         roll: int | None = None,
         **kwargs: Any,
     ):
         self.oracle = oracle
         self.dice = int(self.oracle.dice.split("d")[1])
         self.number_of_rolls = getattr(self.oracle, "number_of_rolls", 1)
-        self.args = args
+        # self.args = args
         self.kwargs = kwargs
 
         if roll is not None:
@@ -222,7 +215,26 @@ class OracleRoller(Roller):
         for n in range(int(self.number_of_rolls)):
             for row in self.oracle.rows:
                 if row.roll and row.roll.min <= self.roll <= row.roll.max:
-                    yield RollResult(roll=self.roll, obj=row, **self.kwargs)
+                    # yield RollResult(roll=self.roll, obj=row, **self.kwargs)
+                    yield get_renderable(
+                        row, result=self.roll, expand=True, **self.kwargs
+                    )
+
+
+class TruthsRoller(Roller):
+    def __init__(
+        self,
+        truths: list[Truth],
+        *args,
+        **kwargs,
+    ):
+        self.truths = truths
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        for truth in self.truths:
+            yield TruthRoller(truth)
 
 
 class TruthRoller(Roller):
@@ -251,6 +263,10 @@ class TruthRoller(Roller):
             if option.roll and option.roll.min <= self.roll <= option.roll.max:
                 yield get_renderable(option, **self.kwargs)
 
+                if option.oracles:
+                    for oracle in option.oracles.values():
+                        yield get_roller(oracle)
+
 
 class AssetRoller(Roller):
     def __init__(
@@ -276,6 +292,32 @@ class AssetRoller(Roller):
     ) -> RenderResult:
         ability = self.asset.abilities[self.roll]
         yield get_renderable(ability, **self.kwargs)
+
+
+class DelveSiteRoller(Roller):
+    def __init__(
+        self,
+        delve_site: DelveSite,
+        roll: int | None = None,
+        **kwargs: Any,
+    ):
+        self.delve_site = delve_site
+        self.kwargs = kwargs
+
+        if roll is not None:
+            if roll < 0 or roll > 100:
+                msg = f"Invalid roll: {roll} (Range 100)"
+                raise ValueError(msg)
+            self.roll = roll
+        else:
+            self.roll = random.randint(0, 100)
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        for denizen in self.delve_site.denizens:
+            if denizen.roll and denizen.roll.min <= self.roll <= denizen.roll.max:
+                yield get_renderable(denizen, **self.kwargs)
 
 
 class MoveActionRollRoller(Roller):
@@ -306,7 +348,6 @@ class MoveActionRollRoller(Roller):
 
 if __name__ == "__main__":
     from pysworn.common import datasworn_tree
-    from rich import print
     from rich.console import Console
     from rich.logging import RichHandler
 
