@@ -1,0 +1,39 @@
+
+sundered_isles
+
+-- Choose Your Truths
+truths 
+
+-- Set Your Factions
+roll factions
+
+-- Create Your Character
+roll character
+roll name character
+roll backstory
+roll backstory cursed
+
+-- Take Command
+roll take_command
+
+-- Chart your Course
+-- Step 1: Choose your Starting Region
+myriads -- TODO: set region
+
+-- Step 2: Set Faction Influence
+-- Step 3: Reveal Islands
+-- Step 4: Build a Seaside Settlement
+roll settlement oracles
+
+-- Step 5: Add Notable Locations
+-- Step 6: Add a Local Connection
+-- Step 7: Name the Area
+
+-- Inciting Incident
+
+
+
+
+
+
+

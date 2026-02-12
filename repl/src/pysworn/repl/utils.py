@@ -5,10 +5,11 @@ from collections.abc import Mapping
 from typing import Any
 
 from pysworn.common import datasworn_tree
-from pysworn.repl.state import state
-from pysworn.repl.theme import pysworn_theme
 from rich.console import Console
 from rich.text import Text
+
+from pysworn.repl.state import state
+from pysworn.repl.theme import pysworn_theme
 
 console = Console(theme=pysworn_theme)
 print = console.print
@@ -222,7 +223,8 @@ def build_human_path(path: list[str]) -> str | None:
         return None
     p = [p.capitalize() for p in path_]
     p = " ".join(reversed(p)) + f" {path[0]}"
-    p = p.replace("_", " ").replace(".", " ")
+    # p = p.replace("_", " ")
+    p = p.replace(".", " ")
     log.debug(f"{path} --> {p}")
     return p
 
@@ -261,8 +263,9 @@ def add_ruleset(ruleset: str):
 
 
 def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
-    from pysworn.repl.fuzzy import Matcher
     from rich.style import Style
+
+    from pysworn.repl.fuzzy import Matcher
 
     keys = " ".join(key)
 
@@ -280,6 +283,7 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
             ruleset = p.split()[-1]
 
             # lower weight for earlier loaded rulesets
+            log.debug(f"Ruleset: {ruleset} {state['rulesets']}")
             factor = 1.0 + state["rulesets"].index(ruleset)
             score /= factor
 
