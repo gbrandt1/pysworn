@@ -7,45 +7,24 @@ readme = "README.md"
 keywords = ["ironsworn", "starforged", "ttrpg"]
 authors = [{ name = "Gerhard Brandt", email = "gbrandt@cern.ch" }]
 requires-python = ">=3.12"
-dependencies = [
-    "pysworn-datasworn",
-    "pysworn-reference",
-    "pysworn-renderables",
-    "rapidfuzz>=3.14.3",
-    "repl",
-]
-scripts = { sworn = "pysworn.repl.sworn:run" }
+dependencies = ["pysworn-common", "pysworn-repl", "rapidfuzz>=3.14.3"]
 
 [build-system]
-requires = ["uv_build>=0.9.5,<0.10.0"]
+requires = ["uv_build>=0.10.2,<0.11.0"]
 build-backend = "uv_build"
 
-[tool.uv]
-managed = true
-package = false # the project itself is not a package
-
 [tool.uv.sources]
-pysworn-reference = { workspace = true }
+# pysworn-reference = { workspace = true }
 pysworn-renderables = { workspace = true }
-pysworn-datasworn = { workspace = true }
+pysworn = { workspace = true }
 pysworn-common = { workspace = true }
-repl = { workspace = true }
-# datasworn = { path = "../datasworn/pkg/python/datasworn" }
+pysworn-repl = { workspace = true }
 
 [tool.uv.workspace]
-members = [
-    "datasworn",
-    "reference",
-    "journal",
-    "renderables",
-    "world",
-    "repl",
-    "tbsvttr",
-    "common",
-]
+members = ["renderables", "repl", "common"]
 
-[tool.uv.build-backend]
-source-include = ["**"]
+# [tool.uv.build-backend]
+# source-include = ["**"]
 
 [dependency-groups]
 dev = [
@@ -59,6 +38,8 @@ dev = [
     "pytest-xdist>=3.8.0",
     "textual-dissect>=0.2.0",
     "pysworn-common",
+    "pysworn",
+    "repl",
 ]
 
 

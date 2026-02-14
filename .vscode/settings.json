@@ -1,0 +1,54 @@
+{
+    "python.analysis.extraPaths": [
+        "./renderables/src",
+        "./repl/src",
+        "./common/src"
+    ],
+    "python.useEnvironmentsExtension": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "pysworn",
+            "depth": 4
+        },
+        {
+            "name": "datasworn",
+            "depth": 4
+        },
+        {
+            "name": "sklearn",
+            "depth": 2
+        },
+        {
+            "name": "matplotlib",
+            "depth": 2
+        },
+        {
+            "name": "scipy",
+            "depth": 2
+        },
+        {
+            "name": "django",
+            "depth": 2
+        },
+        {
+            "name": "flask",
+            "depth": 2
+        },
+        {
+            "name": "fastapi",
+            "depth": 2
+        },
+        {
+            "name": "cuda",
+            "depth": 3,
+            "includeAllSymbols": true
+        }
+    ],
+    "python-envs.pythonProjects": [
+        {
+            "path": "",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]
+}

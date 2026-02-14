@@ -58,7 +58,7 @@ class Sworn:
             try:
                 self.run(line + "\n")
             except Exception as e:
-                log.error(e)
+                log.exception(e)
 
             # Reset these so we can stay in the REPL unhindered
             self.had_error = False
@@ -86,7 +86,7 @@ class Sworn:
 
         if self.show_lexer:
             for token in tokens:
-                print(f"{token} ", end="")
+                print(f"{token=} ", end="")
                 if token.value == ";":
                     print()
 

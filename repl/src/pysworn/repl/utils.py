@@ -5,11 +5,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from pysworn.common import datasworn_tree
-from rich.console import Console
-from rich.text import Text
-
 from pysworn.repl.state import state
 from pysworn.repl.theme import pysworn_theme
+from rich.console import Console
+from rich.text import Text
 
 console = Console(theme=pysworn_theme)
 print = console.print
@@ -170,7 +169,7 @@ def id_to_tokens(id_: str):
 
 def build_human_path(path: list[str]) -> str | None:
     """Transform id path to human typeable path"""
-
+    seen = set()
     path_dd: dict[str, Callable[[list[str]], Any]] = {
         # ASSETS
         "asset": lambda p: p,
@@ -179,14 +178,14 @@ def build_human_path(path: list[str]) -> str | None:
         "asset.ability.move.condition": lambda p: (
             None
         ),  # TODO: extract options from move
-        "asset.ability.move.outcome": lambda p: ["move"] + p[1:-3] + p[-2:],
+        "asset.ability.move.outcome": lambda p: None,  # ,["move"] + p[1:-3] + p[-2:],
         "asset.ability.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
-        "asset.ability.oracle_rollable.row": lambda p: None,  # rollable
+        # "asset.ability.oracle_rollable.row": lambda p: None,  # rollable
         "asset_collection": lambda p: ["assets"] + p[1:],
         # ATLAS
         "atlas_collection": lambda p: p,
         "atlas_entry": lambda p: p,
-        # DELVE
+        # DELVES
         "delve_site": lambda p: p,
         "delve_site.denizen": lambda p: None,  # rollable (TODO)
         "delve_site_domain": lambda p: ["domain"] + p[1:],
@@ -200,15 +199,19 @@ def build_human_path(path: list[str]) -> str | None:
         "move.condition": lambda p: None,  # TODO: extract options from move
         "move.oracle_rollable": lambda p: ["oracle", "move"] + p[1:],
         "move.oracle_rollable.row": lambda p: None,  # rollable
-        "move.outcome": lambda p: ["move"] + p[1:],
+        "move.outcome": lambda p: None,  # ["move"] + p[1:],
         "move_category": lambda p: ["moves"] + p[1:],
+        # NPCS
         "npc": lambda p: p,
         "npc.variant": lambda p: ["npc"] + p[1:-2] + p[-1:],
         "npc_collection": lambda p: ["npcs"] + p[1:],
+        # ORACLES
         "oracle_collection": lambda p: ["oracles"] + p[1:],
         "oracle_rollable": lambda p: ["oracle"] + p[1:],
         "oracle_rollable.row": lambda p: None,  # rollable
+        # RARITIES
         "rarity": lambda p: p,
+        # TRUTHS
         "truth": lambda p: p,
         "truth.option": lambda p: None,  # rollable
         "truth.option.oracle_rollable": lambda p: ["oracle"] + p[1:-2] + p[-1:],
@@ -220,12 +223,18 @@ def build_human_path(path: list[str]) -> str | None:
         msg = f"Unknown type: {path[1]}"
         raise ValueError(msg)
     if not path_:
+        # log.debug(f"Skipping {path}")
         return None
-    p = [p.capitalize() for p in path_]
-    p = " ".join(reversed(p)) + f" {path[0]}"
-    # p = p.replace("_", " ")
+    p = reversed([p for p in path_])
+    p = " ".join(p)  # + f" {path[0]}"
+
     p = p.replace(".", " ")
     log.debug(f"{path} --> {p}")
+    if p in seen:
+        log.warning(f"seen: {seen}")
+        p.append(path[0])
+        log.warning(f"{path} --> {p}")
+    seen.add(p)
     return p
 
 
@@ -254,8 +263,11 @@ def add_ruleset(ruleset: str):
             else:
                 if p := build_human_path(path):
                     if p in paths:
-                        msg = f"Duplicate path: {p} --> {paths[p]} and {v}"
-                        raise ValueError(msg)
+                        msg = f"Duplicate path: '{p}' --> '{paths[p]}'"
+                        log.warning(msg)
+                        old_ruleset = paths[p].split(':')[1].split('/')[0]
+                        paths[p+" "+old_ruleset]=paths[p]
+                        # raise ValueError(msg)
                     paths[p] = v
 
     _flatten_id_tree(merged)
@@ -263,9 +275,8 @@ def add_ruleset(ruleset: str):
 
 
 def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
-    from rich.style import Style
-
     from pysworn.repl.fuzzy import Matcher
+    from rich.style import Style
 
     keys = " ".join(key)
 
@@ -279,24 +290,24 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
     matches: list[Any] = []
     for p in paths.keys():
         score = matcher.match(p)
-        if score > 0.0:
-            ruleset = p.split()[-1]
+        if score > 10.0:
+            # ruleset = p.split()[-1]
 
             # lower weight for earlier loaded rulesets
-            log.debug(f"Ruleset: {ruleset} {state['rulesets']}")
-            factor = 1.0 + state["rulesets"].index(ruleset)
-            score /= factor
+            # log.debug(f"Ruleset: {ruleset} {state['rulesets']}")
+            # factor = 1.0 + state["rulesets"].index(ruleset)
+            # score /= factor
 
             # lower weight for sub-objects
             id_ = paths[p]
-            factor = 1.0 + id_.count(".")
-            score /= factor
+            # factor = 1.0 + id_.count(".")
+            # score /= factor
 
             # lower weight for higher page numbers
-            obj = index[id_]
-            if source := getattr(obj, "source", None):
-                factor = 1.0 + (source.page or 0.0) * 0.01
-                score /= factor
+            # obj = index[id_]
+            # if source := getattr(obj, "source", None):
+            #     factor = 1.0 + (source.page or 0.0) * 0.01
+            #     score /= factor
 
             matches.append((score, p, id_))
 

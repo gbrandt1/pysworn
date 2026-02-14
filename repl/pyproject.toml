@@ -1,5 +1,5 @@
 [project]
-name = "repl"
+name = "pysworn-repl"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -11,7 +11,8 @@ dependencies = [
     "pysworn-renderables",
     "textual-autocomplete>=4.0.6",
 ]
-scripts = { sworn = "pysworn.repl.sworn:app" }
+[project.scripts]
+sworn = "pysworn.repl.sworn:app"
 
 [project.entry-points."pygments.styles"]
 pysworn = "pysworn.repl.style:PyswornStyle"
@@ -20,13 +21,17 @@ pysworn = "pysworn.repl.style:PyswornStyle"
 [tool.uv.build-backend]
 module-name = "pysworn.repl"
 
+[tool.uv.sources]
+pysworn-common = { workspace = true }
+pysworn-renderables = { workspace = true }
+
 [build-system]
-requires = ["uv_build>=0.9.18,<0.10.0"]
+requires = ["uv_build>=0.10.2,<0.11.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["textual-dev>=1.8.0"]
 
-[tool.uv.sources]
-pysworn-common = { workspace = true }
-pysworn-renderables = { workspace = true, editable = true }
+# [tool.uv.sources]
+# pysworn-common = { workspace = true }
+# pysworn-renderables = { workspace = true, editable = true }

@@ -1,7 +1,9 @@
+from curses import panel
 import logging
 import random
 from dataclasses import dataclass
 from inspect import getfullargspec
+from re import M
 from typing import (
     Any,
     ClassVar,
@@ -38,6 +40,7 @@ from datasworn.core.models import (
     Truth,
 )
 from pysworn.renderables import get_renderable
+from pysworn.common import Truths
 from rich.console import (
     Console,
     ConsoleOptions,
@@ -123,7 +126,7 @@ class Roller:
         else:
             if v in Roller.Registry:
                 raise KeyError(f"Duplicate renderable type: {v}")
-            if v.__module__ == "datasworn.core.models":
+            if v.__module__ == "datasworn.core.models" or v.__module__ == "pysworn.common":
                 Roller.Registry[v] = cls
                 log.debug(f"{v}: {cls}")
 
@@ -217,18 +220,18 @@ class OracleRoller(Roller):
                 if row.roll and row.roll.min <= self.roll <= row.roll.max:
                     # yield RollResult(roll=self.roll, obj=row, **self.kwargs)
                     yield get_renderable(
-                        row, result=self.roll, expand=True, **self.kwargs
+                        row, result=self.roll, expand=True, panel=False, **self.kwargs,
                     )
 
 
 class TruthsRoller(Roller):
     def __init__(
         self,
-        truths: list[Truth],
+        truths: Truths,
         *args,
         **kwargs,
     ):
-        self.truths = truths
+        self.truths = truths.truths
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
@@ -321,23 +324,27 @@ class DelveSiteRoller(Roller):
 
 
 class MoveActionRollRoller(Roller):
+    OUTCOMES = ["strong_hit", "weak_hit", "miss"]
+
     def __init__(
         self,
         move: MoveActionRoll,
-        # roll: int | None = None,
+        roll: str | None = None,
         **kwargs: Any,
     ):
         self.move = move
         self.kwargs = kwargs
 
         # na = len(self.move.outcomes)
-        # if roll is not None:
-        #     if roll < 0 or roll > na:
-        #         msg = f"Invalid roll: {roll} (Range {na})"
-        #         raise ValueError(msg)
-        #     self.roll = roll
-        # else:
-        self.roll = random.choice(["strong_hit", "weak_hit", "miss"])
+        if roll is not None:
+            if roll not in self.OUTCOMES:
+                msg = (
+                    f"Invalid roll: {roll} (must be one of {self.OUTCOMES})"
+                )
+                raise ValueError(msg)
+            self.roll = roll
+        else:
+            self.roll = random.choice(self.OUTCOMES)
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions

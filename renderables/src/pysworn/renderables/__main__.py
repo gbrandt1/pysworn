@@ -125,42 +125,11 @@ def pages(
     render: Annotated[bool, typer.Option("-r", "--render")] = False,
     # filter: Annotated[str, typer.Option("-f", "--filter")] = ".row",
 ):
-    page_index = {}
-    for k, v in datasworn_tree.index.items():
-        title = None
-        page = None
-        if source := getattr(v, "source", None):
-            # print(source)
-            title = source.title
-            page = source.page or -1
+    from pysworn.renderables.utils import pages
 
-        if title is None or page is None:
-            continue
-
-        d = page_index.setdefault(title, {})
-        dd = d.setdefault(page, {})
-        dd[k] = v
-
-    for title in sorted(page_index.keys()):
-        print(Markdown(f"# {title}"))
-        tree = Tree(f"{title}")
-        for page in sorted(page_index[title].keys()):
-            # print(Rule(f"{page:4}", align="left"))
-            node = tree.add(f"{page:4}")
-            for k, v in page_index[title][page].items():
-                renderable = get_renderable(v)
-                print(
-                    f"{page:4}",
-                    f"{f"'{k}'"}",
-                    f"<{type(v).__name__}>",
-                    # f"{renderable}",
-                )
-                # print(Pretty(v))
-                if render:
-                    print(renderable)
-                node.add(k)
-
-        # print(tree)
+    renderables = pages(render)
+    for r in renderables:
+        print(r)
 
 
 @app.command("print")

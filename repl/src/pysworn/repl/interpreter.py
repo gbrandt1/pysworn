@@ -1,3 +1,4 @@
+import fnmatch
 import logging
 from dataclasses import dataclass
 from functools import singledispatchmethod
@@ -13,13 +14,14 @@ from pysworn.repl.grammar import (
     Literal,
 )
 from pysworn.repl.lexer import Token
-from pysworn.repl.roller import TruthsRoller, get_roller
+from pysworn.repl.roller import get_roller
 from pysworn.repl.state import state
 from pysworn.repl.theme import pysworn_theme
 from pysworn.repl.utils import (
     add_ruleset,
     fuzzy_search,
 )
+from pysworn.common import Truths
 from rich.console import Console
 from rich.pretty import Pretty
 
@@ -61,14 +63,16 @@ class Interpreter:
                     results.append(result)
         except InterpreterError as e:
             log.error(e)
-        except ValueError as e:
-            log.error(e)
+        # except ValueError as e:
+        # log.error(e)
         except Exception as e:
             log.exception(e)
 
         return results
 
-    def get_datasworn_object(self, name: str) -> Any | None:
+    def get_datasworn_object(self, stmt: ExprStmt) -> Any | None:
+
+        name = stmt[0].value
         if name in datasworn_tree.keys():
             add_ruleset(name)
             return datasworn_tree[name]
@@ -76,7 +80,7 @@ class Interpreter:
         paths = state.get("paths", None)
         if not paths:
             msg = "No references found. Did you say which ruleset(s) to play?"
-            raise ValueError(msg)
+            raise InterpreterError(stmt[0].token, msg)
         winner = fuzzy_search([name], state["paths"])
         if not winner:
             return
@@ -90,7 +94,27 @@ class Interpreter:
         return obj
 
     def get_obj_from_expr(self, expr: list[Literal]) -> Any:
-        obj = self.get_datasworn_object(expr[0].value)
+        name = expr[0].value        
+        # truths
+        if name == "truths":
+            truths = []
+            for k, v in datasworn_tree.index.items():
+                if k.startswith("truth:"):
+                    truths.append(v)
+            return Truths(truths)
+
+        # identifiers starting with $
+        if name.startswith('$'):
+            pattern = f"{name[1:]}"
+            ids = fnmatch.filter(datasworn_tree.index, pattern)
+            if len(ids) != 1:
+                for i in ids:
+                    print(f"[green]{i}")
+                return
+            else:
+                obj = datasworn_tree.index[ids[0]]
+        else:
+            obj = self.get_datasworn_object(expr)
         log.debug(f"{type(obj)} ({getattr(obj, 'id', None)})")
 
         return obj
@@ -108,17 +132,18 @@ class Interpreter:
         obj = self.get_obj_from_expr(stmt.expr)
         if not obj:
             return
+        
         # check for index
         if len(stmt.expr) > 1:
-            obj = get_roller(obj, roll=int(stmt.expr[1].value))
+            obj = get_roller(obj, roll=stmt.expr[1].value)
             return obj
+        
         return get_renderable(obj)
 
     @visit.register
     def _(self, stmt: KeywordStmt) -> Any:
         match stmt.token.value:
-            case "print":
-                obj = self.get_obj_from_expr(stmt.expr)
+            case "print":                
                 return Pretty(
                     self.get_obj_from_expr(stmt.expr),
                     overflow="fold",
@@ -128,46 +153,12 @@ class Interpreter:
             case "roll":
                 obj = self.get_obj_from_expr(stmt.expr)
                 roller = get_roller(obj)
+                log.debug(f"Roller: {type(roller)}")
                 return roller
 
             case "tree":
-                from rich.tree import Tree
-
-                try:
-                    tree = state["tree"]
-                    if stmt.expr:
-                        for v in stmt.expr[0].value.split():
-                            tree = tree[v]
-                except KeyError:
-                    msg = f"Error in tree statement. {stmt.expr}"
-                    raise InterpreterError(stmt.token, msg)
-
-                # print(tree)
-                rtree = Tree(
-                    " ".join(e.value for e in stmt.expr),
-                    guide_style="scope.border",
-                )
-
-                def _recurse_tree(node: Tree, tree: dict[str, Any]):
-                    for k, v in tree.items():
-                        if isinstance(v, dict):
-                            if len(v) > 1:
-                                subnode = node.add(f"{k}")
-                                _recurse_tree(subnode, v)
-                            if "id" in v and len(v) == 1:
-                                node.add(f"{k} [blue]{v['id']}[/]")
-
-                _recurse_tree(rtree, tree)
-                return rtree
-
-            case "truths":
-                truths = []
-                for k, v in datasworn_tree.index.items():
-                    if k.startswith("truth:"):
-                        truths.append(v)
-                # log.debug(f"truths: {truths}")
-                return TruthsRoller(truths)
-
+                return self.print_tree(stmt)
+ 
             case _:
                 raise InterpreterError(
                     stmt.token, f"Unimplemented keyword: {stmt.token.value}"
@@ -183,3 +174,34 @@ class Interpreter:
             Markdown(expr.text),
             border_style="scope.border",
         )
+
+    # Commands --------------------------------------------------------------
+
+    def print_tree(self, stmt: ExprStmt):
+        from rich.tree import Tree
+
+        try:
+            tree = state["tree"]
+            if stmt.expr:
+                for v in stmt.expr[0].value.split():
+                    tree = tree[v]
+        except KeyError:
+            msg = f"Error in tree statement. {stmt.expr}"
+            raise InterpreterError(stmt.token, msg)
+
+        rtree = Tree(
+            " ".join(e.value for e in stmt.expr),
+            guide_style="scope.border",
+        )
+
+        def _recurse_tree(node: Tree, tree: dict[str, Any]):
+            for k, v in tree.items():
+                if isinstance(v, dict):
+                    if len(v) > 1:
+                        subnode = node.add(f"{k}")
+                        _recurse_tree(subnode, v)
+                    if "id" in v and len(v) == 1:
+                        node.add(f"{k} [blue]{v['id']}[/]")
+
+        _recurse_tree(rtree, tree)
+        return rtree

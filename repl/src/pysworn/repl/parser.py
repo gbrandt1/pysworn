@@ -150,13 +150,19 @@ class Parser:
         expr: list[Any] = []
         while self.check(String) or self.check(Number):
             expr.append(self.primary())
+            if not self.check(Operator.Colon):
+                return expr
+            self.consume(Operator.Colon, "Expected ':' to continue expression.")
+        # while self.check(String) or self.check(Number):
+        #     expr.append(self.primary())
+
         log.debug(f"expr={expr}")
         return expr
 
     def primary(self) -> Expr | None:
         log.debug(f"primary: '{self.peek().value}'")
 
-        if self.match(String.Symbol, String, Number):
+        if self.match(String.Identifier, String.Symbol, String, Number):
             return Literal(self.previous(), self.previous().value)
 
         self.error(self.peek(), "Expected literal.")
