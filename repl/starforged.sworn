@@ -1,10 +1,10 @@
 
 starforged
 
-Cataclysm Truth 34
+Cataclysm Truth : 34
 
-Artificial intelligence Truth 1
-computer 55
+Artificial intelligence Truth : 1
+computer : 55
 
 -- War Truth
 -- Religion Truth
@@ -21,30 +21,30 @@ computer 55
 
 
 naturalist; slayer;
-backstory 66
+backstory : 66
 
 """Background Vow"""
-action core 69; theme core 62
+action core : 69; theme core : 62
 """
 - you were denied a birthright which is and inheritance of an...
 """
-descriptor core 3; roll focus core 88;
+descriptor core : 3; roll focus core : 88;
 """
 - you vow to reposses what is rightly yours.
 """
 
 """Your Starship"""
 starship asset
-history 47
-quirks starship 19
-name starship 15
+history : 47
+quirks starship : 19
+name starship : 15
 -- roll module assets
 sensor array
 
 """Stats"""
 -- Edge
 -- Heart
--- Iron
+-- Irons
 -- Shadow
 -- Wits
 """Condition Meters"""
@@ -70,7 +70,7 @@ sensor array
 
 Star:
 """
-stellar 33
+stellar : 33
 
 """sector map"""
 """passages"""
@@ -93,9 +93,9 @@ trouble starting sector 24
 """Step 11: Finalize the Starting Sector"""
 """Sector **Scarred Oasis**"""
 """Iciting Incident"""
-inciting 21
+inciting : 21
 begin a session session move
-begin a session session move oracle 73
+begin a session session move oracle : 73
 -- roll starship oracles
 """
 Sanctity Fortress is under attack by a fleet of ships

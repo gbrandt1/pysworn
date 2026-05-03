@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from re import sub
 
 from pysworn.datasworn import index, rules
@@ -14,12 +13,10 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.content import Content
 from textual.css.query import NoMatches
 from textual.lazy import Lazy
-from textual.message import Message
 from textual.reactive import reactive, var
 from textual.widget import Widget
 from textual.widgets import Pretty, Static, TabbedContent, TabPane
 from textual.widgets._content_switcher import ContentSwitcher
-from textual.widgets._tabbed_content import ContentTab
 
 from .widgets.tabbed_content import PySwornTabbedContent
 

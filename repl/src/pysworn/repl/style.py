@@ -1,3 +1,7 @@
+"""
+Sworn Script Pygments style
+"""
+
 from pygments.style import Style
 from pygments.token import (
     Comment,

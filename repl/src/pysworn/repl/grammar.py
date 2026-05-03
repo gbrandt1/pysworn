@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from encodings.punycode import T
 
 from pysworn.repl.lexer import Token
 
 """
 program: declaration* EOF
-declaration: statement
+declaration: varDeclaration | statement
+varDeclaration: "new" identifier "=" expression ";"
 statement: 
     | docstring
     | printStmt    
@@ -18,36 +20,64 @@ literal:
 """
 
 
-@dataclass
+# Expr ---------------------------------------------------------------------
 class Expr:
-    token: Token
+    pass
 
 
 @dataclass
-class Literal(Expr):
-    value: int | str
+class Assign(Expr):
+    name: Token
+    value: list[Expr]
 
 
 @dataclass
-class Stmt(Expr):
+class Identifier(Expr):
+    value: str
+
+
+@dataclass
+class Symbol(Expr):
+    value: str
+
+
+@dataclass
+class Variable(Expr):
+    value: str
+
+
+@dataclass
+class Dice(Expr):
+    value: str
+
+
+@dataclass
+class Number(Expr):
+    value: str
+
+
+# Stmt ---------------------------------------------------------------------
+class Stmt:
     pass
 
 
 @dataclass
 class DocString(Stmt):
-    text: str
+    value: str
 
 
 @dataclass
-class ExprStmt(Stmt):
-    expr: list[Literal]
+class Expression(Stmt):
+    expr: list[Expr]
 
 
 @dataclass
-class KeywordStmt(Stmt):
-    expr: list[Literal]
+class Command(Stmt):
+    name: Token
+    args: list[Expr]
 
 
-class AssignmentStmt(Stmt):
-    token: Token
-    expr: list[Literal]
+@dataclass
+class Builtin(Stmt):
+    name: Token
+    args: list[Expr]

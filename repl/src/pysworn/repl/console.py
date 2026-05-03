@@ -1,16 +1,42 @@
 # from: https://github.com/Textualize/rich/issues/2293
 
-from typing import TextIO
 
-try:
-    import readline
-except ImportError:
-    pass
-
+import logging
 from getpass import getpass
+from typing import TextIO
 
 from rich.console import Console
 from rich.text import TextType
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+
+class Completer:
+    def __init__(self, options):
+        self.options = sorted(options)
+        log.debug("Completer(%s)", self.options)
+
+    def complete(self, text, state):
+        log.debug("complete(%s, %s)", repr(text), state)
+        response = None
+        if state == 0:
+            # This is the first time for this text, so build a match list.
+            if text:
+                self.matches = [s for s in self.options if s and s.startswith(text)]
+                log.debug("%s matches: %s", repr(text), self.matches)
+            else:
+                self.matches = self.options[:]
+                log.debug("(empty input) matches: %s", self.matches)
+
+        # Return the state'th item from the match list,
+        # if we have that many.
+        try:
+            response = self.matches[state]
+        except IndexError:
+            response = None
+        log.debug("complete(%s, %s) => %s", repr(text), state, repr(response))
+        return response
 
 
 class ConsoleWithInputBackspaceFixed(Console):

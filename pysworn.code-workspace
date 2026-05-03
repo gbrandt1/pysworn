@@ -8,7 +8,7 @@
         "python.analysis.extraPaths": [
             "/home/gbrandt/starforged/pysworn/common/src",
             "/home/gbrandt/starforged/pysworn/renderables/src",
-            "/home/gbrandt/starforged/pysworn/repl/src",
+            "/home/gbrandt/starforged/pysworn/repl/src/pysworn/repl",
         ],
         "python.autoComplete.extraPaths": [
             "/home/gbrandt/starforged/pysworn/common/src",
@@ -22,6 +22,10 @@
             },
             {
                 "name": "pysworn",
+                "depth": 10
+            },
+            {
+                "name": "pysworn.common",
                 "depth": 10
             },
             {

@@ -1,7 +1,4 @@
 import logging
-from os import pread
-from sys import prefix
-from webbrowser import get
 
 from rich.logging import RichHandler
 
@@ -46,7 +43,6 @@ def tree() -> tuple[str, logging.Logger, list]:
 
 def print_tree():
     from rich import print
-    from rich.text import Text
     from rich.tree import Tree
 
     log_colors = {

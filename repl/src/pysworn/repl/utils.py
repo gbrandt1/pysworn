@@ -2,12 +2,13 @@ import logging
 import re
 from collections import ChainMap, UserDict
 from collections.abc import Mapping
+from doctest import ELLIPSIS_MARKER
 from typing import Any
 
 from pysworn.common import datasworn_tree
 from pysworn.repl.state import state
 from pysworn.repl.theme import pysworn_theme
-from rich.console import Console
+from rich.console import Console, RenderableType
 from rich.text import Text
 
 console = Console(theme=pysworn_theme)
@@ -87,10 +88,12 @@ def get_nested_dict(index: list[str]) -> dict[str, Any]:
 
 
 def get_id_tree(
-    include: str | None = None, exclude: str | None = None
+    include: str | None = None,
+    exclude: str | None = None,
 ) -> dict[str, Any]:
     id_tree: dict[str, Any] = {}
     for id_ in index:
+        log.debug(f"Processing id: {id_}")
         if include and include not in id_:
             continue
         if exclude and exclude in id_:
@@ -197,7 +200,7 @@ def build_human_path(path: list[str]) -> str | None:
         # MOVES
         "move": lambda p: p,
         "move.condition": lambda p: None,  # TODO: extract options from move
-        "move.oracle_rollable": lambda p: ["oracle", "move"] + p[1:],
+        "move.oracle_rollable": lambda p: ["move_oracle"] + p[1:],
         "move.oracle_rollable.row": lambda p: None,  # rollable
         "move.outcome": lambda p: None,  # ["move"] + p[1:],
         "move_category": lambda p: ["moves"] + p[1:],
@@ -242,13 +245,13 @@ def add_ruleset(ruleset: str):
     if ruleset in state["rulesets"]:
         log.warning("Already playing: %s", ", ".join(state["rulesets"]))
         return
-
+    log.info(f"Adding ruleset: {ruleset}")
     state["rulesets"] = [ruleset] + state["rulesets"]
 
     # idd = {p: get_id_tree(p)[p] for p in state["rulesets"]}
     # merged = depth_first_merge(*idd.values())
     # state["tree"] = merged
-
+    log.debug(f"{state['rulesets']}")
     id_tree = get_id_tree(ruleset)
     # print(id_tree)
     state["tree"] |= id_tree
@@ -265,16 +268,18 @@ def add_ruleset(ruleset: str):
                     if p in paths:
                         msg = f"Duplicate path: '{p}' --> '{paths[p]}'"
                         log.warning(msg)
-                        old_ruleset = paths[p].split(':')[1].split('/')[0]
-                        paths[p+" "+old_ruleset]=paths[p]
+                        old_ruleset = paths[p].split(":")[1].split("/")[0]
+                        paths[p + " " + old_ruleset] = paths[p]
                         # raise ValueError(msg)
+                    else:
+                        log.debug(f"Adding path: '{p}' --> '{v}'")
                     paths[p] = v
 
     _flatten_id_tree(merged)
     state["paths"] |= paths
 
 
-def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
+def fuzzy_search(key: list[str], paths: dict[str, str]) -> RenderableType | str:
     from pysworn.repl.fuzzy import Matcher
     from rich.style import Style
 
@@ -284,62 +289,59 @@ def fuzzy_search(key: list[str], paths: dict[str, str]) -> str | None:
 
     matcher = Matcher(
         keys,
-        match_style=Style.parse("u bold bright_cyan"),
+        match_style=Style.parse("bold bright_cyan"),
         case_sensitive=False,
     )
     matches: list[Any] = []
     for p in paths.keys():
         score = matcher.match(p)
-        if score > 10.0:
-            # ruleset = p.split()[-1]
-
-            # lower weight for earlier loaded rulesets
-            # log.debug(f"Ruleset: {ruleset} {state['rulesets']}")
-            # factor = 1.0 + state["rulesets"].index(ruleset)
-            # score /= factor
-
-            # lower weight for sub-objects
+        if score > 1.0:
             id_ = paths[p]
-            # factor = 1.0 + id_.count(".")
-            # score /= factor
-
-            # lower weight for higher page numbers
-            # obj = index[id_]
-            # if source := getattr(obj, "source", None):
-            #     factor = 1.0 + (source.page or 0.0) * 0.01
-            #     score /= factor
-
             matches.append((score, p, id_))
 
     if len(matches) == 0:
-        log.error("No fuzzy matches found.")
-        return None
+        msg = "No fuzzy matches found."
+        raise ValueError(msg)
 
     matches.sort(reverse=True)
-    matches = [m for m in matches if m[0] > 10.0]
+    matches = [m for m in matches if m[0] > 0.0]  # [:10]
     if len(matches) == 0:
         msg = "No fuzzy matches found."
         raise ValueError(msg)
-    log.debug(matches)
+
+    for m in matches:
+        log.debug(m)
 
     if len(matches) == 1 or matches[0][0] > matches[1][0]:
         winner = matches[0][2]
         log.debug(f"Fuzzy winner: {winner}")
+        # print(Text(matches[0][1], style="yellow"))
         return winner
 
     from rich.table import Table
 
-    print()
-    print("Did you mean:\n")
-    t = Table.grid(padding=(0, 1), expand=True)
-    t.add_column(justify="left", overflow="fold")
+    t = Table(
+        title="Did you mean:",
+        title_justify="left",
+        padding=(0, 1),
+        expand=True,
+        show_header=False,
+        # show_edge=False,
+        # show_lines=False,
+        box=None,
+        border_style="scope.border",
+    )
+    t.add_column(ratio=1)
     t.add_column(justify="right", style="log.path")
     for m in matches:
-        path = m[2].split(":")[1].replace("_", " ").title().split("/")
-        path[-1] = path[-1].replace(".", ", ")
-        path_ = " > ".join(path[1:]) + f" ({path[0]})"
+        # path = m[2].split(":")[1].replace("_", " ").title().split("/")
+        # path[-1] = path[-1].replace(".", ", ")
+        # path_ = " > ".join(path[1:]) + f" ({path[0]})"
+        path_ = m[2]
 
-        t.add_row(matcher.highlight(m[1]), Text(path_, style="log.path"))
-    print(t)
-    print()
-    return None
+        h = matcher.highlight(m[1])
+        t.add_row(
+            h,
+            Text(path_, style="log.path"),
+        )
+    return t

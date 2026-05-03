@@ -5,7 +5,8 @@ from typing import Any
 # token types
 from pygments.token import (
     Keyword,
-    Number,
+    Literal,
+    Name,
     Operator,
     String,
     _TokenType,  # pyright: ignore[reportPrivateUsage]
@@ -13,12 +14,17 @@ from pygments.token import (
 
 # grammar
 from pysworn.repl.grammar import (
+    Builtin,
+    Command,
+    Dice,
     DocString,
     Expr,
-    ExprStmt,
-    KeywordStmt,
-    Literal,
+    Expression,
+    Identifier,
+    Number,
     Stmt,
+    Symbol,
+    Variable,
 )
 from pysworn.repl.lexer import EndOfFile, Token
 
@@ -42,7 +48,7 @@ class Parser:
         while not self.is_eof():
             stmt = self.declaration()
             statements.append(stmt)
-            log.info(stmt)
+            log.debug(stmt)
         return statements
 
     # UTILITIES ----------------------------------------------------------------
@@ -55,22 +61,19 @@ class Parser:
             self.current += 1
         return self.previous()
 
-    def match(self, *token_types: _TokenType):
+    def match(self, *token_types):
         for token_type in token_types:
             if self.check(token_type):
-                log.debug(f"match: {self.peek()}")
                 self.advance()
                 return True
-
         return False
 
-    def check(self, token_type: _TokenType):
+    def check(self, token_type):
         if self.is_eof():
             return False
         return self.peek().token_type in token_type
 
     def peek(self) -> Token:
-        # log.debug(f"Peeking: {self.tokens[self.current]}")
         return self.tokens[self.current]
 
     def previous(self) -> Token:
@@ -96,9 +99,8 @@ class Parser:
 
             if self.peek().token_type in (
                 Keyword,
-                Keyword.Reserved,
-                String.Symbol,
-                String.Doc,
+                String,
+                Name,
             ):
                 return
 
@@ -116,53 +118,74 @@ class Parser:
     # STATEMENTS ---------------------------------------------------------------
 
     def statement(self) -> Stmt:
+        if self.match(Name.Builtin):
+            return self.builtin_statement()
+
         if self.match(Keyword):
-            log.debug(f"Found Keyword: {self.previous().value}")
             return self.keyword_statement()
 
         if self.match(String.Doc):
-            return self.docstring()
+            return self.docstring_statement()
 
         return self.expression_statement()
 
-    def keyword_statement(self) -> KeywordStmt:
-        token = self.previous()
+    def builtin_statement(self) -> Builtin:
+        name = self.previous()
+        expr = self.expression()
+        self.consume(Operator.Semicolon, "Expected ';' after builtin statement.")
+        return Builtin(name, expr)
+
+    def keyword_statement(self) -> Command:
+        name = self.previous()
         expr = self.expression()
         self.consume(Operator.Semicolon, "Expected ';' after keyword statement.")
-        return KeywordStmt(token, expr)
+        return Command(name, expr)
 
-    def docstring(self) -> DocString:
-        docs = DocString(self.previous(), self.previous().value[3:-3])
+    def docstring_statement(self) -> DocString:
+        docs = DocString(self.previous().value[3:-3])
         self.consume(Operator.Semicolon, "Expected ';' after docstring.")
         return docs
 
-    def expression_statement(self) -> ExprStmt:
-        # log.debug("expression_statement")
-        token = self.peek()
+    def expression_statement(self) -> Expression:
         expr = self.expression()
-        self.consume(Operator.Semicolon, "Expected ';' after expression.")
-        return ExprStmt(token, expr)
+        log.debug(f"expression_statement: {expr}")
+        self.consume(Operator.Semicolon, "Expected ';' after value.")
+        return Expression(expr)
 
     # EXPRESSIONS --------------------------------------------------------------
 
     def expression(self) -> list[Any]:
-        # log.debug("expression")
-        expr: list[Any] = []
-        while self.check(String) or self.check(Number):
-            expr.append(self.primary())
-            if not self.check(Operator.Colon):
-                return expr
-            self.consume(Operator.Colon, "Expected ':' to continue expression.")
-        # while self.check(String) or self.check(Number):
-        #     expr.append(self.primary())
+        return self.assignment()
 
-        log.debug(f"expr={expr}")
+    def assignment(self) -> list[Any]:
+        expr: list[Any] = []
+        while self.check(Name) or self.check(String) or self.check(Literal):
+            expr.append(self.primary())
+            log.debug(f"expr={expr}")
+            # self.match(Operator.Colon):
+            # return expr
+
         return expr
 
     def primary(self) -> Expr | None:
         log.debug(f"primary: '{self.peek().value}'")
 
-        if self.match(String.Identifier, String.Symbol, String, Number):
-            return Literal(self.previous(), self.previous().value)
+        if self.match(String.Doc):
+            return DocString(self.previous())
+
+        if self.match(String.Identifier):
+            return Identifier(self.previous())
+
+        if self.match(String.Symbol):
+            return Symbol(self.previous())
+
+        if self.match(Name.Variable):
+            return Variable(self.previous())
+
+        if self.match(String.Dice):
+            return Dice(self.previous())
+
+        if self.match(Literal.Number):
+            return Number(self.previous())
 
         self.error(self.peek(), "Expected literal.")

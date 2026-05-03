@@ -1,7 +1,8 @@
 import logging
 import re
 from inspect import getfullargspec
-from turtle import st
+from math import e
+from tkinter import N
 from typing import Any, ClassVar, TypeAliasType, Union, get_args, get_origin
 
 from datasworn.core.models import (
@@ -60,7 +61,7 @@ from datasworn.core.models import (
     TruthOption,
 )
 from pysworn.common import Truths, datasworn_tree
-from pysworn.repl.widgets.columns import PyswornColumns as Columns
+from pysworn.renderables.columns import PyswornColumns as Columns
 from rich.console import (
     Console,
     ConsoleOptions,
@@ -113,9 +114,11 @@ def name_or_id(id_: str | None) -> str:
 def breadcrumbs(id_: str, markup: str = "") -> RenderResult:
     if ":" not in id_:
         return index[id_].name
-    yield Text.from_markup(f"[b {markup}]{name_or_id(id_).upper()}[/] ").append(
-        id_, style="log.path"
-    )
+    t = Table.grid(padding=(1, 1), expand=True)
+    t.add_column(ratio=1, style=f"bold {markup}")
+    t.add_column(justify="right", style="log.path")
+    t.add_row(name_or_id(id_).upper(), id_)
+    yield t
     yield ""
 
 
@@ -124,12 +127,13 @@ def get_renderable(
     *args: Any,
     panel: bool = True,
     **kwargs: Any,
-) -> RenderableType | str:
+) -> RenderableType | None:
     r_type = type(obj)
     renderable = RENDERABLE_TYPES.get(r_type, None)
 
     if not renderable:
-        return f"No renderable found for {type(obj)} ({getattr(obj, 'id', None)})"
+        return None
+        # return f"No renderable found for {type(obj)} ({getattr(obj, 'id', None)})"
 
     if not panel:
         return renderable(obj, *args, **kwargs)
@@ -215,7 +219,10 @@ class PyswornRenderable(ConsoleRenderable):
         else:
             if v in RENDERABLE_TYPES:
                 raise KeyError(f"Duplicate renderable type: {v}")
-            if v.__module__ == "datasworn.core.models" or v.__module__ == "pysworn.common":
+            if (
+                v.__module__ == "datasworn.core.models"
+                or v.__module__ == "pysworn.common"
+            ):
                 RENDERABLE_TYPES[v] = cls
                 log.debug(f"{v}: {cls}")
 
@@ -251,15 +258,15 @@ class RuleSetRenderable(PyswornRenderable):
             if isinstance(d, dict) and d:
                 collections.append((k, d))
 
-        from rich import print
         from rich.columns import Columns
-        from rich.constrain import Constrain
         from rich.tree import Tree
 
         def _add_collection(tree: Tree, node: dict[str, Any]):
             for kk, nn in node.items():
                 branch = tree.add(f"{kk.title().replace('_', ' ')}")
                 if contents := getattr(nn, "contents", None):
+                    # for obj in contents.values():
+                    #     branch.add(obj.name, style="dim")
                     branch.add(
                         Columns(
                             [obj.name for obj in contents.values()],
@@ -903,7 +910,7 @@ class OracleRollableRowRenderable(PyswornRenderable):
     def get_row(self) -> list[str]:
         rtxt = ""
         if self.result:
-            rtxt = f"[b]{self.result}:[/]"
+            rtxt = f"[b]{self.result}[/]"
         else:
             roll = self.row.roll
             if roll:
@@ -926,17 +933,15 @@ class OracleRollableRowRenderable(PyswornRenderable):
         return row
 
     def __rich_console__(
-        self,
-        console: Console,
-        options: ConsoleOptions,
+        self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
 
         t = Table.grid(padding=(0, 1), expand=self.expand)
         path: list[str] = self.row.id.split(":")[1].replace("_", " ").title().split("/")
         name = path[-1].split(".")[0]
         row = self.get_row()
-        row = [name+" "+row[0], *row[1:]]
-        # t.add_column()        
+        row = [f"{name} [{row[0]}]:", *row[1:]]
+        # t.add_column()
         t.add_column(justify="right", style="bright_cyan")
         if hasattr(self.row, "text3"):
             t.add_column(overflow="fold")
@@ -950,7 +955,8 @@ class OracleRollableRowRenderable(PyswornRenderable):
         if self.result:
             t.add_column(style="log.path")
             # path[-1] = path[-1].replace(".", ", ")
-            path_ = " > ".join(path[1:-1]) + f" ({path[0]})"
+            # path_ = " > ".join(path[1:-1]) + f" ({path[0]})"
+            path_ = self.row.id
             row.append(path_)
             # if "adventures" in self.row.id:
         t.add_row(*row)
@@ -1058,7 +1064,7 @@ class TruthRenderable(PyswornRenderable):
 class TruthsRenderable(PyswornRenderable):
     def __init__(self, truths: Truths, *args: Any, **kwargs):
         self.truths = truths
-    
+
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
@@ -1129,7 +1135,16 @@ class RulesRenderable(PyswornRenderable):
                 t.add_row(f"{st.label.upper()}", f"{st.description}")
             yield Panel(t, border_style="scope.border")
 
-        # if tags := getattr(self.rules, "tags", None):
-        #     for k, v in tags.items():
-        #         yield k
-        #         yield Pretty(v)
+        if tags := getattr(self.rules, "tags", None):
+            for k, v in tags.items():
+                yield k
+                for nt in v.node_types:
+                    yield f"- {nt!r}"
+                for s in v.schema_:
+                    yield f"{s}"
+                    if hasattr(s, "type"):
+                        yield f"{s.type}"
+                    if hasattr(s, "enum"):
+                        yield f"{s.enum}"
+                    if hasattr(s, "description"):
+                        yield f"{s.description}"

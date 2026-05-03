@@ -17,13 +17,19 @@ sworn = "pysworn.repl.sworn:app"
 [project.entry-points."pygments.styles"]
 pysworn = "pysworn.repl.style:PyswornStyle"
 
+[tool.uv]
+package = true
 
 [tool.uv.build-backend]
 module-name = "pysworn.repl"
+namespace = true
 
 [tool.uv.sources]
 pysworn-common = { workspace = true }
-pysworn-renderables = { workspace = true }
+
+# [tool.uv.sources]
+# pysworn-common = { workspace = true }
+# pysworn-renderables = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.10.2,<0.11.0"]

@@ -10,7 +10,6 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.driver import Driver
 from textual.reactive import reactive
-from textual.widgets import Static
 
 from .logging import log
 

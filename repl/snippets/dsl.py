@@ -371,7 +371,7 @@ def main(
 
     state["play"] = play
     try:
-        maps = [datasworn_tree[c] for c in play]
+        [datasworn_tree[c] for c in play]
     except KeyError as e:
         log.error(e)
         return

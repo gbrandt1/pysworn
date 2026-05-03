@@ -1,9 +1,7 @@
-from curses import panel
 import logging
 import random
 from dataclasses import dataclass
 from inspect import getfullargspec
-from re import M
 from typing import (
     Any,
     ClassVar,
@@ -12,8 +10,6 @@ from typing import (
     get_args,
     get_origin,
 )
-from unittest import result
-from webbrowser import get
 
 from datasworn.core.models import (
     Asset,
@@ -126,7 +122,10 @@ class Roller:
         else:
             if v in Roller.Registry:
                 raise KeyError(f"Duplicate renderable type: {v}")
-            if v.__module__ == "datasworn.core.models" or v.__module__ == "pysworn.common":
+            if (
+                v.__module__ == "datasworn.core.models"
+                or v.__module__ == "pysworn.common"
+            ):
                 Roller.Registry[v] = cls
                 log.debug(f"{v}: {cls}")
 
@@ -193,6 +192,7 @@ class OracleRoller(Roller):
         self.kwargs = kwargs
 
         if roll is not None:
+            roll = int(roll)
             if roll < 1 or roll > int(self.dice):
                 msg = f"Invalid roll: {roll} (Range d{self.dice})"
                 raise ValueError(msg)
@@ -220,7 +220,11 @@ class OracleRoller(Roller):
                 if row.roll and row.roll.min <= self.roll <= row.roll.max:
                     # yield RollResult(roll=self.roll, obj=row, **self.kwargs)
                     yield get_renderable(
-                        row, result=self.roll, expand=True, panel=False, **self.kwargs,
+                        row,
+                        result=self.roll,
+                        expand=True,
+                        panel=False,
+                        **self.kwargs,
                     )
 
 
@@ -338,9 +342,7 @@ class MoveActionRollRoller(Roller):
         # na = len(self.move.outcomes)
         if roll is not None:
             if roll not in self.OUTCOMES:
-                msg = (
-                    f"Invalid roll: {roll} (must be one of {self.OUTCOMES})"
-                )
+                msg = f"Invalid roll: {roll} (must be one of {self.OUTCOMES})"
                 raise ValueError(msg)
             self.roll = roll
         else:

@@ -1,0 +1,62 @@
+-- Sworn Script Example for an Ironsworn:Delve session
+classic
+delve
+
+"""Campaign Start"""
+discover_a_site
+
+-- roll site_starters oracles
+site_starters site_starters oracle : 38
+frostmark
+shattered_wastes
+fortified
+ice_reach
+roll feature oracles
+
+"""Into the Depths"""
+
+roll delve_the_depths delve move
+
+find_an_opportunity delve move
+roll find_an_opportunity delve move oracle
+
+reveal_a_danger delve move oracle
+roll reveal_a_danger delve move oracle
+
+roll check_your_gear
+
+locate_your_objective
+-- miss
+-- roll escape_the_depths
+escape_the_depths : miss
+roll endure_harm suffer move
+
+"""Learn from Failure"""
+mark_failure
+learn_from_your_failures
+
+"""Rarities and Wealth"""
+-- TODO: manage Wealth
+progenitor_shard
+wield_a_rarity
+
+"""Threat"""
+-- roll category threat oracle
+category threat oracle : 34
+roll malignant_plague
+-- TODO: assign in opposition to vow
+-- TODO: implement menace track
+advance_a_threat threat move
+roll advance_a_threat threat move oracle
+take_a_hiatus
+
+"""Anomaly"""
+roll anomalies npcs
+
+"""Monstrosity"""
+roll monstrosity oracles
+
+"""Trap"""
+roll trap oracles
+
+

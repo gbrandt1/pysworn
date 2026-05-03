@@ -1,19 +1,92 @@
 -- Sworn Script Example for an Ironsworn classic session
-classic; delve; lodestar;
+--
+-- This follows the o.g. book page 202
+classic
 
-roll religion truth
-roll old world truth
-roll mysticism truth
-roll legacies truth
-roll leaders truth
-roll iron truth
-roll horrors truth
-roll firstborn truth
-roll defense truth
-roll communities truth
-roll beasts truth
+-- CREATE YOUR CHARACTER (page 193)
+"""Your Character"""
+-- 1 Envision your character (page 31)
+roll character oracles
+-- 2 Choose a name (page 33)
+roll ironlander name oracle
+-- 3 Set your stats by arranging these bonuses across edge, heart, iron, shadow, and wits in any order: 3, 2, 2, 1, 1 (page 33)
+-- TODO: stats + character sheet
+-- 4 Set your health, spirit, and supply to +5 (page 33)
+-- TODO: meters
+-- 5 Set your momentum to +2, your max momentum to +10, and your momentum reset to +2 (page 35)
+-- TODO: momentum
 
--- roll ironland atlas coll
-havens
+-- CREATE YOUR WORLD
+"""Your World"""
+roll truths
 
-masked; alchemist path asset;
+"""Your Starting Location"""
+roll region
+roll location
+roll name settlement oracle -- --> environmental
+roll environmental oracle
+-- or: roll quick_name settlement oracles
+
+-- 6 Mark up to three background bonds (page 36).
+
+roll character oracles
+roll challenge_rank
+roll forge_a_bond
+
+roll trouble
+roll challenge_rank
+roll forge_a_bond
+
+-- roll forge_a_bond -- bank for later
+
+-- 7 Pick three assets (page 39)
+-- roll companion assets
+wyvern asset
+-- roll path assets
+masked
+-- roll combat_talent assets
+sunderer -- --> "tribute to fallen foe" is third bond
+roll challenge_rank
+roll forge_a_bond
+
+
+-- 8 Make note of any important equipment or items (page 45)
+-- TODO: inventory
+-- 9 Set a background vow, and give it a rank of extreme or epic.
+-- TODO: vows
+--   Then, envision your inciting incident and Swear an Iron Vow. 
+roll action_and_theme oracles
+roll swear_an_iron_vow
+
+-- ADVENTURE EXAMPLE
+
+roll undertake_a_journey
+roll make_camp -- miss
+roll face_danger
+
+-- COMBAT EXAMPLE
+-- check available NPC collections
+npcs
+-- check Horrors
+horrors npcs
+bonewalker
+-- check Combat Moves Reference
+combat moves
+roll enter_the_fray -- miss --> in a bad spot
+roll combat_action
+roll clash -- strong_hit --> in control
+roll strike -- miss
+roll pay_the_price oracle
+turn_the_tide
+strike:strong_hit
+end_the_fight
+
+-- OVERLAND TRAVEL EXAMPLE
+-- roll undertake_a_journey
+undertake_a_journey : strong_hit
+-- envision waypoint
+roll descriptor place oracle
+roll location place oracle
+roll major_plot_twist
+
+

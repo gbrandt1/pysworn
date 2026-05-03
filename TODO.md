@@ -2,46 +2,85 @@
 
 ClassVars:
 
-- [ ] widths --> move to CSS (in Textual), args in Rich
-- [ ] borders --> move to CSS (in Textual)
 - [x] Moves: Embedded oracles not yet deserialized
+  - [ ] conditions fully deserialized?
 - [ ] Moves: Show embedded moves?
 - [ ] resolve links in table rows
 - [x] extra column for roll (?)
 - [ ] move row rendering to renderables
 
-- [ ] Rich theme
-- [ ] markdown tables border color
+- [x] Rich theme
+  - [x] markdown tables border color
 - [ ] sync Rich theme and Textual theme
 
-- [ ] render tables with sync. zebra along row
+- [x] render tables with sync. zebra along row --> copy of Rich Columns
 
 - [ ] define access to embedded objects (with '.' in type)
 
 ## REPL
 
 - [ ] load/save history
+- [ ] tab completion
 - [ ] prompt toolkit? [ ] Textual input
+- [ ] syntax highlighting
+- [ ] support '.' to suppress output
 
 ## Matcher
 
 - [ ] right-aligned table
 - [ ] call from resolver
+- [ ] fat-finger correction?
+
+## Commands
+
+- [ ] support args/kwargs in commands
+
+### tree
+
+- [ ] tree by path
+
+### $
+
+- [ ] color ids
+- [ ] syntax highlight
 
 ## Renderables
 
-- [ ] correct rendering of column-wise tables
-- [ ] allow options
+- [ ] add tests
+- [ ] widths --> move to CSS (in Textual), args in Rich
+- [ ] panels --> move to CSS (in Textual)
+- [ ] correct rendering of column-wise Shared tables
+  - [x] allow options (args, kwargs)
+    - [x] control panel
+    - [ ] verbosity options
+- [ ] RulesetRenderable
+  - [ ] panel [ ] info in two-columns layout
 
-- [ ] control panel
-- [ ] ruleset: [ ] panel, [ ] info
+## Mechanics
 
-## Rollables
+- [ ] integrate rules (add ids?)
+- [ ] meters
+- [ ] progress tracks
+- [ ] special tracks
+- [ ] tags --> [ ] contexts
 
+### roll + Rollables
+
+- [ ] add tests
 - [ ] add missing rollables
 - [ ] move row rendering to renderables
+- [ ] enable free rolling with dice code
+- [ ] oracles
+  - [ ] render as single table
+  - [ ] resolve rerolls or defers ("roll twice", "action + theme" etc.)
+
+### Inventory
+
+- [ ] support random inventory
 
 ## Rulesets
+
+### Classic
 
 ### Delve
 

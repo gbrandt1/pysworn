@@ -1,5 +1,4 @@
 import logging
-from encodings.punycode import T
 from typing import Annotated, TypeAliasType, Union, get_args, get_origin
 
 import typer
@@ -7,13 +6,10 @@ from pysworn.common import datasworn_tree
 from pysworn.renderables.renderables import RENDERABLE_TYPES, get_renderable
 from rich.columns import Columns
 from rich.console import Console, RenderableType
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.pretty import Pretty
-from rich.rule import Rule
 from rich.table import Table
 from rich.theme import Theme
-from rich.tree import Tree
 
 from . import RenderableKeyEnum, RuleSetRenderable, RulesRenderable
 
@@ -103,7 +99,7 @@ def types(
         for k, v in keys.items():
             for vv in v:
                 renderable = RENDERABLE_TYPES.get(vv, None)
-                renderable = f"<{renderable.__name__}>" if renderable else f"[red]None"
+                renderable = f"<{renderable.__name__}>" if renderable else "[red]None"
                 t.add_row(f"'{k}'", f"<{vv.__name__}>", f"{renderable}")
             # t.add_section()
         return t

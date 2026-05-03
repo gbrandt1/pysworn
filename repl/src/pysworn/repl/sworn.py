@@ -1,24 +1,53 @@
+import atexit
 import logging
+import readline
 import sys
 from pathlib import Path
 from typing import Annotated, Literal
 
 import typer
-from pysworn.repl.console import ConsoleWithInputBackspaceFixed as Console
+from pysworn.repl.console import Completer
 from pysworn.repl.interpreter import Interpreter
-from pysworn.repl.lexer import Lexer, Token, print_untokenize
+from pysworn.repl.lexer import Lexer, Token
 from pysworn.repl.parser import Parser
 from pysworn.repl.theme import pysworn_theme
 
-# from rich import print
+# from pysworn.repl.console import ConsoleWithInputBackspaceFixed as Console
+from pysworn.repl.tokens import KEYWORDS, RULESETS
 from rich.columns import Columns
+from rich.console import Console, RenderableType
 from rich.logging import RichHandler
+from rich.protocol import is_renderable
 
-console = Console(theme=pysworn_theme, force_terminal=True)
-print = console.print
-
+# logging.basicConfig(
+#     level="WARNING",
+#     format="%(message)s",
+#     datefmt="[%X]",
+#     handlers=[RichHandler(rich_tracebacks=True)],
+# )
 logging.getLogger("markdown_it").setLevel(logging.WARNING)
 log = logging.getLogger(__name__)
+
+histfile = Path(__file__).parent / ".pysworn_history"
+try:
+    readline.read_history_file(histfile)
+except FileNotFoundError:
+    pass
+
+readline.set_history_length(1000)
+# readline.set_completer(Completer(KEYWORDS + RULESETS).complete)
+readline.parse_and_bind("tab: complete")
+readline.set_completer_delims(" \t\n;")
+atexit.register(readline.write_history_file, histfile)
+
+console = Console(
+    theme=pysworn_theme,
+    highlight=True,
+    force_terminal=True,
+    color_system="truecolor",
+)
+print = console.print
+
 
 app = typer.Typer()
 
@@ -54,59 +83,48 @@ class Sworn:
     def repl(self):
         while True:
             # console.print()
-            line = console.input("⬡⬡⬡ ")
+            line = input("⬡⬡⬡ ")
             try:
-                self.run(line + "\n")
-            except Exception as e:
-                log.exception(e)
+                result = self.run(line + "\n")
+                print(Columns(result, expand=True))
+            except Exception as exc:
+                print(exc)
 
             # Reset these so we can stay in the REPL unhindered
             self.had_error = False
             self.had_runtime_error = False
 
     def run(self, src: str):
-        lexer = Lexer()
-        try:
-            lexer.tokenize(src)
-        except ValueError as e:
-            print(f"\n{e}")
-            line = lexer.tokens[-1].line - 1
-            col = lexer.tokens[-1].col
-            print(f"[red]{src.split('\n')[line]}\n{' ' * col}^")
-            return
+        lexer = Lexer(src)
+        tokens = lexer.scan_tokens()
 
-        if self.highlight:
-            print_untokenize(lexer.tokens)
-
-        tokens = lexer.clean_tokens()
-
-        if not tokens:
-            log.error("No tokens found.")
-            return
-
-        if self.show_lexer:
-            for token in tokens:
-                print(f"{token=} ", end="")
-                if token.value == ";":
-                    print()
+        if lexer.errors or not tokens:
+            self.had_error = True
+            return lexer.errors
 
         parser = Parser(tokens, error_handler=self)
         stmts = parser.parse()
+
+        if self.highlight:
+            print(lexer.untokenize())
+
+        if self.show_lexer:
+            print(lexer)
 
         if self.show_parser:
             print("Parser Output:")
             print(stmts)
 
         if not self.interpret:
-            return
+            return []
 
         results = self.interpreter.interpret(stmts)
+        results = [r if is_renderable(r) else repr(r) for r in results]
+        return results
 
-        print(Columns(results))
-
-    def error(self, token: Token, message: str):
+    def error(self, token: Token, message: str | RenderableType):
         self.had_error = True
-        log.error(f"[line {token.line}] {message} {token}")
+        log.error(f"[line {token.line}] {message}")
 
 
 @app.command()
@@ -145,6 +163,7 @@ def main(
         datefmt="[%X]",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
+    log.debug(f"Running with log level: {log_level}")
 
     sworn = Sworn(
         show_lexer=scanner,

@@ -10,103 +10,69 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-import rich.repr
 from pygments.lexer import RegexLexer
 from pygments.token import (
     Comment,
     Generic,
     Keyword,
+    Name,
     Number,
     Operator,
     String,
     Whitespace,
-    _TokenType,  # pyright: ignore[reportPrivateUsage]
+    _TokenType,
 )
+from pysworn.repl.tokens import KEYWORDS, RULESETS
 from rich import print
+from rich.console import Console, ConsoleOptions, RenderResult
 from rich.syntax import Syntax
 
 log = logging.getLogger(__name__)
 
-# TODO: use Pygments bygroups()
+
+@dataclass
+class Token:
+    token_type: _TokenType
+    value: str
+    pos: int
+    line: int
+    col: int
+
+    def __rich__(self) -> str:
+        return f"{self.line:>3}:{self.col:>2} <{self.token_type!r} {self.value!r}>"
+
+    def __repr__(self) -> str:
+        return f"Token({self.token_type!r}, {self.value!r}, {self.pos!r}, {self.line!r}, {self.col!r})"
+
+
 triple_quoted_string = (
     r'("""(?:[^"\\]|\\.|"(?="))*"""|\'\'\'(?:[^\'\\]|\\.|\'(?=\'\'))*\'\'\')'
 )
 double_quoted_string = r'"(?:\\.|[^"\\n])*"'
 single_quoted_string = r"'([^'\\]*(?:\\.[^'\\]*)*)'"
 
-# TODO: use Pygments words()
-# pragmas = ["match", "play", "seed"]
-KEYWORDS = [
-    "print",
-    "roll",  # "progress roll", # "action roll",
-    "take",
-    "mark",
-    "burn",
-    "in control",
-    "in bad spot",
-    "reset",
-    # "suffer",
-    "tree",
-    # "truths",
-    # "from",
-]
 
-ID_TYPES_REGEX = [
-    r"asset",
-    r"asset\.ability",
-    r"asset\.ability\.move",
-    r"asset\.ability\.move\.condition",
-    r"asset\.ability\.move\.outcome",
-    r"asset\.ability\.oracle_rollable",
-    r"asset_collection",
-    r"atlas_collection",
-    r"atlas_entry",
-    r"delve_site",
-    r"delve_site\.denizen",
-    r"delve_site_domain",
-    r"delve_site_domain\.danger",
-    r"delve_site_domain\.feature",
-    r"delve_site_theme",
-    r"delve_site_theme\.danger",
-    r"delve_site_theme\.feature",
-    r"move",
-    r"move\.condition",
-    r"move\.oracle_rollable",
-    r"move\.oracle_rollable\.row",
-    r"move\.outcome",
-    r"move_category",
-    r"npc",
-    r"npc\.variant",
-    r"npc_collection",
-    r"oracle_collection",
-    r"oracle_rollable",
-    r"oracle_rollable\.row",
-    r"rarity",
-    r"truth",
-    r"truth\.option",
-    r"truth\.option\.oracle_rollable",
-    r"truth\.option\.oracle_rollable\.row",
-]
+BUILTINS = RULESETS
 
-# pragmas_regex = r"\b(" + "|".join(pragmas) + r")\b"
+
 keywords_regex = r"\b(" + "|".join(KEYWORDS) + r")\b"
-# id_types_regex = ( r"\$\*?(" + "|".join(ID_TYPES_REGEX) + r")*:?"
-#                   r"\*?[a-z][a-z0-9_]*(\*?/[a-z][a-z0-9_\.]*)*\*?$")
-id_types_regex = r"\$[a-z0-9_:/\.\*]*$"
+# builtins_regex = r"\b(" + "|".join(BUILTINS) + r")\b"
+identifier_regex = r"\$[a-z0-9\_:/\.\*]*$"
 
 state = [
     (r"--.*$", Comment),
     (triple_quoted_string, String.Doc),
     (double_quoted_string, String.Double),
     (single_quoted_string, String.Single),
-    # (pragmas_regex, Keyword.Namespace),
     (keywords_regex, Keyword),
-    (id_types_regex, String.Identifier),
-    (r"[a-zA-Z_]+([ ]+([a-zA-Z_])+)*", String.Symbol),
-    # (r"[a-zA-Z_]\w*", Name),
+    # (builtins_regex, Name.Builtin),
+    (identifier_regex, String.Identifier),
+    # (r"[a-zA-Z_]+([ ]+([a-zA-Z_])+)*", String.Symbol),
+    (r"[a-zA-Z][a-zA-Z0-9\-\_]*", Name.Variable),
+    (r"\d+d\d+", String.Dice),
     (r"\d+", Number),
-    (r"=", Operator.Assignment),
-    # (r"\.", Operator.Dot),
+    # (r"=", Operator.Assignment),
+    (r"\.", Operator.Dot),
     # (r"\+", Operator.Plus),
     # (r"-", Operator.Minus),
     # (r"\*", "MULTIPLY"),
@@ -114,22 +80,12 @@ state = [
     # (r"\(", Operator.LParen),
     # (r"\)", Operator.RParen),
     # (r"=", Operator.Equal),
-    (r":", Operator.Colon),
+    # (r":", Operator.Colon),
     (r";", Operator.Semicolon),
     (r"\n", Generic.Newline),
     # (r"^[ \t]+\b", Whitespace.Indent),  # Leading whitespace
     (r"[ \t]+", Whitespace),  # Ignore whitespace
 ]
-
-
-@dataclass
-@rich.repr.auto
-class Token:
-    token_type: _TokenType
-    value: str
-    pos: int
-    line: int
-    col: int
 
 
 EndOfFile = Generic.EndOfFile
@@ -138,19 +94,31 @@ EndOfFile = Generic.EndOfFile
 class PygmentsSwornLexer(RegexLexer):
     """Pygments Lexer for Sworn script language."""
 
-    # name = "Sworn"
-    # url = "https://github.com/gbrandt1/pysworn"
+    name = "Sworn"
+    url = "https://github.com/gbrandt1/pysworn"
     aliases = ["sworn"]
     filenames = ["*.sworn", "*.pysworn"]
     tokens = {"root": state}
 
 
-@rich.repr.auto
+class ScanError(Exception):
+    def __init__(self, line: int, col: int, message: str | None = None):
+        self.message = message
+        self.line = line - 1
+        self.col = col
+
+    def __rich__(self):
+        return f"[red]{self.message}\n{' ' * self.col}^"
+
+
 class Lexer:
     """Lexer for Sworn script language."""
 
-    def __init__(self, rules: list[tuple[str, _TokenType]] = state) -> None:
+    def __init__(self, src: str, rules: list[tuple[str, _TokenType]] = state) -> None:
+        self.text = src
         self.rules = rules
+        self.tokens: list[Token] = []
+        self.errors: list[Exception] = []
 
         # Compile regex patterns with named groups
         regex_parts: list[str] = []
@@ -160,25 +128,25 @@ class Lexer:
             regex_parts.append(f"(?P<{groupname}>{regex})")
             self.group_type[groupname] = token_type
         self.regex = re.compile("|".join(regex_parts), re.MULTILINE)
-        
-        self.tokens: list[Token] = []
 
-    def tokenize(self, text: str) -> list[Token]:
+    def tokenize_unprocessed(self) -> list[Token]:
         """Tokenize a string into a list Tokens."""
-        # TODO: indentation stack
+
         pos = 0
         line = 1
         col = 0
 
-        while pos < len(text):
-            match = self.regex.match(text, pos)
+        while pos < len(self.text):
+            match = self.regex.match(self.text, pos)
 
             if not match:
-                msg = f"Unexpected character in line {line} at column {col}"
-                raise ValueError(msg)
+                msg = f"[{line}] Unexpected character"
+                raise ScanError(line, col, f"{msg}\n{self.text.split('\n')[line - 1]}")
+
             groupname = match.lastgroup
             if not groupname:
-                raise ValueError()
+                msg = f"[{line}] Unexpected group"
+                raise ScanError(line, col, f"{msg}\n{self.text.split('\n')[line - 1]}")
 
             token_type = self.group_type[groupname]
             value = match.group(groupname)
@@ -198,17 +166,17 @@ class Lexer:
                 )
             )
             pos = match.end()
-            # log.debug(self.tokens[-1])
 
         self.tokens.append(Token(EndOfFile, "", pos + 1, line, col + 1))
         return self.tokens
 
-    def clean_tokens(self) -> list[Token]:
+    def tokenize(self) -> list[Token]:
         """
-        - Remove comments.
+        - Remove comments and whitespace.
         - Insert semicolons.
         - Merge semicolons and newlines.
         """
+
         tokens_: list[Token] = []
 
         line = ""
@@ -220,7 +188,6 @@ class Lexer:
                 continue
 
             if t.token_type is Generic.Newline:
-                # insert semicolon
                 if len(line) > 0 and line[-1] != ";":
                     t.token_type = Operator.Semicolon
                     t.value = ";"
@@ -233,49 +200,45 @@ class Lexer:
 
         return tokens_
 
+    def scan_tokens(self):
+        try:
+            self.tokenize_unprocessed()
+        except ScanError as e:
+            self.errors.append(e)
+        try:
+            return self.tokenize()
+        except Exception as e:
+            self.errors.append(e)
 
-def print_untokenize(tokens: list[Any]):
-    untokenized = ""
-    for token in tokens:
-        untokenized += token.value
+    def untokenize(self) -> Syntax:
+        untokenized = ""
+        for token in self.tokens:
+            untokenized += token.value
 
-    syntax = Syntax(
-        untokenized, PygmentsSwornLexer(), theme="pysworn", line_numbers=True
-    )
-    print(syntax)
+        syntax = Syntax(
+            untokenized, PygmentsSwornLexer(), theme="pysworn", line_numbers=True
+        )
+        return syntax
 
-
-def try_lexer():
-    lexer = Lexer(state)
-    text = ""
-    with open("example.sworn", "r") as f:
-        text = f.read()
-
-    try:
-        lexer.tokenize(text)
-    except ValueError as e:
-        print(f"\n{e}")
-        line = lexer.tokens[-1].line - 1
-        col = lexer.tokens[-1].col - 1
-        print(f"[red]{text.split('\n')[line]}\n{' ' * col}^")
-        return
-
-    print_untokenize(lexer.tokens)
-
-    clean_tokens = lexer.clean_tokens()
-    clean_untokenized = "  ".join([t.value for t in clean_tokens]).replace(";", "\n")
-    print(clean_untokenized)
-    return
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        yield "Lexer Output:"
+        for token in self.tokenize():
+            if token.token_type is Operator.Semicolon:
+                yield f"{token.line:>3}:{token.col:>2} ;"
+            else:
+                yield token
 
 
 if __name__ == "__main__":
-    from rich.logging import RichHandler
+    import sys
+    from pathlib import Path
 
-    logging.basicConfig(
-        level="DEBUG",
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)],
-    )
+    path = Path(sys.argv[1])
+    with path.open("rt") as file:
+        src = file.read()
 
-    try_lexer()
+        lexer = PygmentsSwornLexer()
+        for pos, token, lexeme in lexer.get_tokens_unprocessed(src):
+            print(f"{pos:4} {token} {lexeme!r}")
